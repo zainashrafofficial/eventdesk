@@ -7,7 +7,7 @@ Built for the VSpark 2026 Web Development Competition (COMSATS University Islama
 | | |
 | --- | --- |
 | **Live URL** | `https://YOUR-APP.vercel.app` ← replace after deploying |
-| **Repository** | `https://github.com/YOUR-USERNAME/eventdesk` ← replace |
+| **Repository** | [github.com/zainashrafofficial/eventdesk](https://github.com/zainashrafofficial/eventdesk) |
 | **Stack** | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase (Postgres, Auth, Storage) · Tailwind CSS v4 · Zod · Open-Meteo API · OpenStreetMap |
 
 ---
