@@ -1,0 +1,41 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+/build
+
+# testing
+/coverage
+
+# misc
+.DS_Store
+Thumbs.db
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# env files: real secrets NEVER go to GitHub. Only the template is committed.
+.env
+.env.*
+!.env.example
+
+# supabase local state
+supabase/.branches
+supabase/.temp
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# screenshot script scratch
+/scripts/.auth
