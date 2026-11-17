@@ -6,7 +6,8 @@ Built for the VSpark 2026 Web Development Competition (COMSATS University Islama
 
 | | |
 | --- | --- |
-| **Live URL** | `https://YOUR-APP.vercel.app` ← replace after deploying |
+| **Live URL** | **[eventdesk-self.vercel.app](https://eventdesk-self.vercel.app)** (health check: [/api/health](https://eventdesk-self.vercel.app/api/health)) |
+| **Demo account** | Sign up with any email, or use `demo.mwkvkvu1@example.com` / `Demo-pass-2026` (already has sample events and files) |
 | **Repository** | [github.com/zainashrafofficial/eventdesk](https://github.com/zainashrafofficial/eventdesk) |
 | **Stack** | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase (Postgres, Auth, Storage) · Tailwind CSS v4 · Zod · Open-Meteo API · OpenStreetMap |
 
@@ -189,7 +190,11 @@ Local ports are 553xx (API `http://127.0.0.1:55321`, Studio `http://127.0.0.1:55
    # PowerShell: $env:BASE_URL="https://your-app.vercel.app"; npm run test:e2e
    ```
 
-> `NEXT_PUBLIC_*` variables are baked in at build time. If you change one in Vercel, **redeploy**.
+> `NEXT_PUBLIC_*` variables are baked in at build time. If you change one in Vercel, **redeploy** (or push a commit).
+
+**Region:** `vercel.json` pins serverless functions to `bom1` (Mumbai), close to users in Pakistan, instead of Vercel's default US East region. Ideally the Supabase project sits in the matching region (`ap-south-1`, Mumbai) so each database query is a short hop. (We tried `hnd1` Tokyo first: Open-Meteo's forecast host timed out from there, and the app's error state with a retry button handled it.)
+
+**Deployment protection:** the production domain must be public for judges. Vercel → Settings → Deployment Protection → *Vercel Authentication* must not require login on production.
 
 ---
 
