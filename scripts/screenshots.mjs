@@ -45,6 +45,17 @@ async function shot(page, name, opts = {}) {
   step += 1;
   const file = path.join(OUT, `${String(step).padStart(2, "0")}-${name}.png`);
   await page.waitForTimeout(350); // let transitions settle
+  // Wait for visible images (signed storage URLs can be slow on remote databases).
+  await page
+    .waitForFunction(
+      () =>
+        [...document.images]
+          .filter((img) => img.getBoundingClientRect().top < window.innerHeight)
+          .every((img) => img.complete && img.naturalWidth > 0),
+      null,
+      { timeout: 10000 },
+    )
+    .catch(() => {});
   await page.screenshot({ path: file, fullPage: opts.fullPage ?? false });
   log(`screenshot ${path.basename(file)}`);
 }
@@ -140,7 +151,19 @@ async function main() {
     const outcome = await Promise.race([
       page.waitForURL(/\/dashboard/, { timeout: 20000 }).then(() => "in"),
       page.getByText("Check your inbox").waitFor({ timeout: 20000 }).then(() => "confirm"),
+      page
+        .locator("form [role=alert], [role=alert].rounded-xl")
+        .filter({ hasText: /\S/ })
+        .first()
+        .waitFor({ timeout: 20000 })
+        .then(() => "error"),
     ]);
+    if (outcome === "error") {
+      const text = await page.locator("[role=alert]").filter({ hasText: /\S/ }).first().innerText();
+      throw new Error(
+        `Sign-up was rejected: "${text}". If it mentions the email address, Confirm email is probably ON (Supabase only accepts real addresses when it has to send mail).`,
+      );
+    }
     if (outcome === "confirm") {
       throw new Error(
         "Email confirmation is ON. Disable it (Supabase > Authentication > Sign In / Providers > Email > Confirm email) or rerun with EMAIL/PASSWORD of a confirmed account.",
