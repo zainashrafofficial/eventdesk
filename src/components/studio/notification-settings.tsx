@@ -13,6 +13,16 @@ import { FormAlert } from "@/components/ui/form-alert";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/overlay";
 import { Switch } from "@/components/ui/switch";
 import { cn, omit } from "@/lib/utils";
+import { motion, useReducedMotion, type Variants } from "motion/react";
+
+const STAGGER: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.055, delayChildren: 0.08 } },
+};
+const ITEM: Variants = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 380, damping: 32 } },
+};
 
 const TIMEZONES = ["Asia/Karachi", "UTC", "Asia/Dubai", "Europe/London", "America/New_York", "Asia/Kolkata"];
 
@@ -40,7 +50,7 @@ export function NotificationSettingsSheet({ settings }: { settings: Notification
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="secondary" size="sm">
+        <Button variant="secondary" size="sm" className="shrink-0 whitespace-nowrap">
           <Bell /> Notifications
           {!settings.enabled && <span aria-hidden className="size-1.5 rounded-full bg-warning" />}
         </Button>
@@ -62,6 +72,7 @@ function SettingsForm({ settings, onSaved }: { settings: NotificationSettings; o
   const [error, setError] = React.useState<string | null>(null);
   const [saving, startSave] = React.useTransition();
   const [testing, startTest] = React.useTransition();
+  const reduce = useReducedMotion();
 
   const set = <K extends keyof NotificationSettingsInput>(key: K, value: NotificationSettingsInput[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -126,30 +137,46 @@ function SettingsForm({ settings, onSaved }: { settings: NotificationSettings; o
 
   return (
     <form onSubmit={save} className="flex min-h-0 flex-1 flex-col" noValidate>
-      <div className="px-6 pb-2 pt-7">
-        <span className="grid size-11 place-items-center rounded-2xl bg-accent-soft text-accent">
+      <motion.div
+        className="px-5 pb-2 pt-7 sm:px-6"
+        initial={reduce ? false : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+      >
+        <motion.span
+          className="grid size-11 place-items-center rounded-[0.9rem] bg-gradient-to-b from-accent to-accent-hover text-accent-ink shadow-soft"
+          initial={reduce ? false : { scale: 0.6, rotate: -12 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 420, damping: 18, delay: 0.05 }}
+        >
           <Bell className="size-5" />
-        </span>
+        </motion.span>
         <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink">Notifications</h2>
         <p className="mt-1 text-sm leading-relaxed text-muted">
           Cadence emails you when a post is scheduled and again right before it goes live.
         </p>
-      </div>
+      </motion.div>
 
-      <div className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
+      <motion.div
+        className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 py-5 sm:px-6"
+        variants={reduce ? undefined : STAGGER}
+        initial={reduce ? false : "hidden"}
+        animate="show"
+      >
         <FormAlert message={error} />
 
+        <motion.div variants={reduce ? undefined : ITEM}>
         <Group>
           <Row label="Email notifications" htmlFor={id("enabled")} hint={off ? "All emails are paused" : undefined}>
             <Switch id={id("enabled")} checked={form.enabled} onCheckedChange={(v) => set("enabled", v)} />
           </Row>
         </Group>
+        </motion.div>
 
-        <div
-          className={cn(
-            "flex flex-col gap-6 transition-opacity duration-300",
-            off && "pointer-events-none opacity-45",
-          )}
+        <motion.div
+          animate={{ opacity: off ? 0.45 : 1 }}
+          transition={{ duration: 0.25 }}
+          className={cn("flex flex-col gap-6", off && "pointer-events-none")}
           aria-disabled={off || undefined}
         >
           <GroupSection title="Deliver to" error={errors.email}>
@@ -249,16 +276,18 @@ function SettingsForm({ settings, onSaved }: { settings: NotificationSettings; o
               </ul>
             </div>
           </GroupSection>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
-      <div className="flex flex-col-reverse gap-2 border-t border-line bg-surface/80 px-6 py-4 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-        <Button type="button" variant="ghost" size="sm" onClick={test} loading={testing} disabled={off}>
+      <div className="flex flex-col-reverse gap-2 border-t border-line bg-surface/80 px-5 py-4 backdrop-blur-xl backdrop-saturate-150 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <Button type="button" variant="ghost" size="sm" className="whitespace-nowrap" onClick={test} loading={testing} disabled={off}>
           <Send /> Send test email
         </Button>
-        <Button type="submit" size="sm" loading={saving} disabled={!dirty}>
-          Save settings
-        </Button>
+        <motion.div whileTap={reduce || !dirty ? undefined : { scale: 0.96 }} className="flex">
+          <Button type="submit" size="sm" className="w-full whitespace-nowrap sm:w-auto" loading={saving} disabled={!dirty}>
+            Save settings
+          </Button>
+        </motion.div>
       </div>
     </form>
   );
@@ -278,22 +307,23 @@ function safeZone(tz: string) {
 /* ------------------------------------------------------------------ */
 
 function GroupSection({ title, error, children }: { title: string; error?: string; children: React.ReactNode }) {
+  const reduce = useReducedMotion();
   return (
-    <div className="flex flex-col gap-2">
-      <p className="px-1 text-[12px] font-medium uppercase tracking-[0.06em] text-muted">{title}</p>
+    <motion.div variants={reduce ? undefined : ITEM} className="flex flex-col gap-2">
+      <p className="px-4 text-[12px] font-medium uppercase tracking-[0.06em] text-muted">{title}</p>
       {children}
       {error && (
-        <p role="alert" className="px-1 text-[13px] text-danger">
+        <p role="alert" className="px-4 text-[13px] text-danger">
           {error}
         </p>
       )}
-    </div>
+    </motion.div>
   );
 }
 
 function Group({ children }: { children: React.ReactNode }) {
   return (
-    <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgb(var(--shadow-color)/0.03)]">
+    <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgb(var(--shadow-color)/0.03)] [&>*+*]:relative [&>*+*]:before:absolute [&>*+*]:before:inset-x-0 [&>*+*]:before:left-4 [&>*+*]:before:top-0 [&>*+*]:before:h-px [&>*+*]:before:bg-line">
       {children}
     </div>
   );
@@ -311,7 +341,7 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-13 items-center justify-between gap-4 px-4 py-2.5">
+    <div className="flex min-h-13 items-center justify-between gap-4 px-4 py-2.5 transition-colors duration-200 hover:bg-ink/[0.02]">
       <div className="min-w-0">
         <label htmlFor={htmlFor} className="block cursor-pointer text-[14.5px] text-ink">
           {label}

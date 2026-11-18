@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { CalendarClock, CloudUpload, FileText, Layers, Lightbulb, Sparkles } from "lucide-react";
+import { AnimatePresence, MotionConfig, animate, motion, useReducedMotion, type Variants } from "motion/react";
 import { toast } from "sonner";
 import type { getStudioData } from "@/lib/data/posts";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,57 @@ function useGreeting() {
     () => greetingFor(new Date().getHours()),
     () => "Welcome back",
   );
+}
+
+const SPRING = { type: "spring", stiffness: 260, damping: 28, mass: 0.9 } as const;
+const HEADLINE = "What are we posting today?".split(" ");
+
+const headerVariants: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.045, delayChildren: 0.05 } },
+};
+const wordVariants: Variants = {
+  hidden: { opacity: 0, y: "0.35em", filter: "blur(8px)" },
+  show: { opacity: 1, y: 0, filter: "blur(0px)", transition: SPRING },
+};
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 14, filter: "blur(4px)" },
+  show: { opacity: 1, y: 0, filter: "blur(0px)", transition: SPRING },
+};
+const statsVariants: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.18 } },
+};
+const tileVariants: Variants = {
+  hidden: { opacity: 0, y: 16, scale: 0.97 },
+  show: { opacity: 1, y: 0, scale: 1, transition: SPRING },
+};
+
+/** Animated count-up; server HTML carries the real number, the client animates into it. */
+function CountUp({ value }: { value: number }) {
+  const reduce = useReducedMotion();
+  const ref = React.useRef<HTMLSpanElement>(null);
+  const from = React.useRef(0);
+  React.useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const format = (v: number) => Math.round(v).toLocaleString("en-US");
+    if (reduce) {
+      node.textContent = format(value);
+      from.current = value;
+      return;
+    }
+    const controls = animate(from.current, value, {
+      duration: 1.1,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => {
+        node.textContent = format(v);
+      },
+    });
+    from.current = value;
+    return () => controls.stop();
+  }, [value, reduce]);
+  return <span ref={ref}>{value.toLocaleString("en-US")}</span>;
 }
 
 const DRIVE_ERRORS: Record<string, string> = {
@@ -81,52 +133,86 @@ export function Studio({ data, driveNotice }: { data: StudioData; driveNotice: D
   ];
 
   return (
-    <div className="container-app pt-8 pb-24 sm:pt-12">
+    <MotionConfig reducedMotion="user">
+    <div className="container-app pt-8 pb-16 sm:pt-12">
       {/* Header */}
-      <header className="flex animate-fade-up flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+      <motion.header
+        variants={headerVariants}
+        initial="hidden"
+        animate="show"
+        className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between"
+      >
         <div className="min-w-0">
-          <p className="eyebrow" suppressHydrationWarning>
+          <motion.p variants={fadeUp} className="eyebrow inline-flex items-center gap-2" suppressHydrationWarning>
+            <span className="size-1.5 rounded-full bg-accent animate-pulse-dot" aria-hidden />
             {greeting}
-          </p>
-          <h1 className="display mt-2 text-[2.25rem] text-balance text-ink sm:text-5xl lg:text-[3.5rem]">
-            What are we posting today?
+          </motion.p>
+          <h1 className="display mt-2.5 text-[2.25rem] text-balance text-ink sm:text-5xl lg:text-[3.5rem]">
+            {HEADLINE.map((word, i) => (
+              <React.Fragment key={`${word}-${i}`}>
+                <motion.span variants={wordVariants} className="inline-block will-change-transform">
+                  {word}
+                </motion.span>
+                {i < HEADLINE.length - 1 ? " " : null}
+              </React.Fragment>
+            ))}
           </h1>
-          <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted sm:text-base">
-            Describe it once. Cadence drafts the captions, files them in Drive and reminds you when it's time.
-          </p>
+          <motion.p variants={fadeUp} className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted sm:text-base">
+            Describe it once. Cadence drafts the captions, files them in Drive and reminds you when it&apos;s time.
+          </motion.p>
         </div>
-        <div className="shrink-0">
+        <motion.div variants={fadeUp} className="shrink-0">
           <NotificationSettingsSheet settings={data.settings} />
-        </div>
-      </header>
+        </motion.div>
+      </motion.header>
 
-      {/* Stats */}
-      <ul className="mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-4" aria-label="Overview">
-        {stats.map((s, i) => (
-          <li
+      {/* Stats: Apple-widget tiles */}
+      <motion.ul
+        variants={statsVariants}
+        initial="hidden"
+        animate="show"
+        className="mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-4"
+        aria-label="Overview"
+      >
+        {stats.map((s) => (
+          <motion.li
             key={s.label}
-            className="glass group flex animate-fade-up items-center gap-3.5 rounded-3xl border border-line p-4 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lift sm:p-5"
-            style={{ animationDelay: `${80 + i * 60}ms` }}
+            variants={tileVariants}
+            whileHover={{ y: -3, transition: { type: "spring", stiffness: 400, damping: 26 } }}
+            className="glass group relative flex min-w-0 flex-col justify-between gap-5 overflow-hidden rounded-[26px] border border-line p-4 shadow-soft transition-shadow duration-300 hover:shadow-lift sm:p-5"
           >
-            <span className={cn("grid size-10 shrink-0 place-items-center rounded-2xl transition-transform duration-300 group-hover:scale-105 sm:size-11", s.tint)}>
-              <s.icon className="size-[18px]" aria-hidden />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-2xl leading-none font-semibold tracking-[-0.03em] text-ink tabular sm:text-[28px]">
-                {s.value}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/70 to-transparent dark:via-white/15"
+            />
+            <span className="flex items-center justify-between gap-2">
+              <span className="truncate text-[13px] font-medium text-muted">{s.label}</span>
+              <span
+                className={cn(
+                  "grid size-8 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-110 sm:size-9",
+                  s.tint,
+                )}
+              >
+                <s.icon className="size-4" aria-hidden />
               </span>
-              <span className="mt-1.5 block truncate text-[13px] text-muted">{s.label}</span>
             </span>
-          </li>
+            <span className="block text-[28px] leading-none font-semibold tracking-[-0.04em] text-ink tabular sm:text-[34px]">
+              <CountUp value={s.value} />
+            </span>
+          </motion.li>
         ))}
-      </ul>
+      </motion.ul>
 
       {/* Main grid */}
       <div className="mt-8 grid gap-8 sm:mt-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10">
         <div className="flex min-w-0 flex-col gap-8">
-          <div className="animate-fade-up" style={{ animationDelay: "160ms" }}>
+          <motion.div
+            initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ ...SPRING, delay: 0.32 }}
+          >
             <Generator studio={studio} />
-          </div>
+          </motion.div>
 
           <CaptionOptions
             options={studio.options}
@@ -137,8 +223,26 @@ export function Studio({ data, driveNotice }: { data: StudioData; driveNotice: D
             onSelect={handleSelect}
           />
 
-          <div ref={composerRef} className="scroll-mt-24">
-            {composerOpen && (
+          <div ref={composerRef} className="-my-4 scroll-mt-20">
+            <AnimatePresence initial={false}>
+              {composerOpen && (
+                <motion.div
+                  key="composer"
+                  initial={{ height: 0, opacity: 0, overflow: "hidden" }}
+                  animate={{
+                    height: "auto",
+                    opacity: 1,
+                    transition: { height: { ...SPRING, stiffness: 220 }, opacity: { duration: 0.25, delay: 0.05 } },
+                    transitionEnd: { overflow: "visible" },
+                  }}
+                  exit={{
+                    height: 0,
+                    opacity: 0,
+                    overflow: "hidden",
+                    transition: { height: { duration: 0.28, ease: [0.4, 0, 0.2, 1] }, opacity: { duration: 0.16 } },
+                  }}
+                >
+                  <div className="py-4">
               <ScheduleComposer
                 caption={studio.caption}
                 onCaptionChange={studio.setCaption}
@@ -151,7 +255,10 @@ export function Studio({ data, driveNotice }: { data: StudioData; driveNotice: D
                 onSaved={studio.clearSelection}
                 onCancel={studio.clearSelection}
               />
-            )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <section aria-labelledby="feed-title" className="flex min-w-0 flex-col gap-4 pt-2">
@@ -167,7 +274,7 @@ export function Studio({ data, driveNotice }: { data: StudioData; driveNotice: D
           <DriveStatusCard drive={data.drive} />
           <EmailActivity log={data.log} />
 
-          <div className="glass rounded-3xl border border-line p-5 shadow-soft">
+          <div className="glass rounded-[26px] border border-line p-5 shadow-soft">
             <div className="flex items-center gap-2.5">
               <span className="grid size-8 place-items-center rounded-xl bg-accent-soft text-accent">
                 <Lightbulb className="size-4" aria-hidden />
@@ -200,5 +307,6 @@ export function Studio({ data, driveNotice }: { data: StudioData; driveNotice: D
         </aside>
       </div>
     </div>
+    </MotionConfig>
   );
 }

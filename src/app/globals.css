@@ -490,3 +490,43 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/*  Landing + auth additions (aurora glow, typing caret, demo shimmer)  */
+/* ------------------------------------------------------------------ */
+
+@theme inline {
+  --animate-aurora-a: aurora-a 18s ease-in-out infinite;
+  --animate-aurora-b: aurora-b 22s ease-in-out infinite;
+  --animate-caret: caret 1s steps(1) infinite;
+
+  @keyframes aurora-a {
+    0%, 100% { transform: translate3d(-8%, 0, 0) scale(1); }
+    50% { transform: translate3d(6%, 6%, 0) scale(1.12); }
+  }
+  @keyframes aurora-b {
+    0%, 100% { transform: translate3d(8%, 4%, 0) scale(1.08); }
+    50% { transform: translate3d(-6%, -4%, 0) scale(0.95); }
+  }
+  @keyframes caret {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+}
+
+/* Moving highlight across text, used for "Generating..." states */
+@utility text-shimmer {
+  background-image: linear-gradient(90deg, var(--muted) 0%, var(--muted) 35%, var(--ink) 50%, var(--muted) 65%, var(--muted) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: var(--animate-shimmer);
+}
+
+/* Faint dotted grid used behind hero + bento illustrations */
+@utility bg-dots {
+  background-image: radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--ink) 10%, transparent) 1px, transparent 0);
+  background-size: 22px 22px;
+}

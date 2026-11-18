@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { CircleAlert, Cpu, RotateCcw, Sparkles, Timer } from "lucide-react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/display";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,9 @@ const TONE_LABEL: Record<Tone, string> = {
   friendly: "Friendly",
 };
 
+const PILL_SPRING = { type: "spring", stiffness: 420, damping: 34, mass: 0.7 } as const;
+const BORDER_MASK = "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)";
+
 const noopSubscribe = () => () => {};
 function useIsMac() {
   return React.useSyncExternalStore(
@@ -35,7 +39,6 @@ export function Generator({ studio }: { studio: StudioState }) {
   const isMac = useIsMac();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const canGenerate = prompt.trim().length >= 3 && cooldown === 0;
-  const platformIndex = PLATFORMS.indexOf(platform);
 
   function onKeyDown(e: React.KeyboardEvent) {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
@@ -48,8 +51,48 @@ export function Generator({ studio }: { studio: StudioState }) {
     <section
       aria-labelledby="generator-title"
       onKeyDown={onKeyDown}
-      className="glass relative overflow-hidden rounded-[28px] border border-line shadow-soft"
+      className={cn(
+        "glass relative isolate overflow-hidden rounded-[28px] border shadow-soft transition-[border-color,box-shadow] duration-500",
+        loading ? "border-transparent shadow-lift" : "border-line",
+      )}
     >
+      {/* Animated gradient border + soft glow while Gemini is writing */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            key="generating-glow"
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.4 } }}
+            transition={{ duration: 0.5 }}
+          >
+            <div
+              className="absolute inset-0 overflow-hidden rounded-[28px]"
+              style={{
+                padding: "1.5px",
+                WebkitMask: BORDER_MASK,
+                WebkitMaskComposite: "xor",
+                mask: "linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)",
+              }}
+            >
+              <motion.div
+                className="absolute top-1/2 left-1/2 aspect-square w-[160%] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(from_0deg,transparent_0deg,var(--accent)_60deg,#5e5ce6_120deg,#bf5af2_160deg,transparent_230deg,transparent_360deg)]"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: "linear" }}
+              />
+            </div>
+            <motion.div
+              className="absolute -top-28 left-1/2 h-56 w-[70%] -translate-x-1/2 rounded-full bg-accent/20 blur-3xl"
+              animate={{ opacity: [0.35, 0.8, 0.35], scale: [0.95, 1.05, 0.95] }}
+              transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <LayoutGroup id="generator">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -103,17 +146,20 @@ export function Generator({ studio }: { studio: StudioState }) {
         <div className="-mt-2 flex items-center gap-2 overflow-x-auto no-scrollbar mask-fade-x sm:flex-wrap sm:overflow-visible sm:[mask-image:none]">
           <span className="shrink-0 text-xs font-medium text-muted">Try</span>
           {SUGGESTIONS.map((s) => (
-            <button
+            <motion.button
               key={s}
               type="button"
               onClick={() => {
                 setPrompt(s);
                 textareaRef.current?.focus();
               }}
-              className="shrink-0 rounded-full border border-line bg-surface px-3 py-1.5 text-[13px] text-ink-2 transition-all duration-200 hover:-translate-y-px hover:border-line-strong hover:text-ink hover:shadow-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:translate-y-0"
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              className="shrink-0 rounded-full border border-line bg-surface px-3 py-1.5 text-[13px] text-ink-2 transition-[border-color,color,box-shadow] duration-200 hover:border-line-strong hover:text-ink hover:shadow-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               {s}
-            </button>
+            </motion.button>
           ))}
         </div>
 
@@ -127,12 +173,7 @@ export function Generator({ studio }: { studio: StudioState }) {
               {PLATFORM_LABELS[platform]} · {PLATFORM_LIMITS[platform].toLocaleString("en-US")} chars
             </span>
           </div>
-          <div role="radiogroup" aria-labelledby="platform-label" className="relative grid grid-cols-5 rounded-2xl bg-ink/[0.05] p-1">
-            <span
-              aria-hidden
-              className="absolute inset-y-1 left-1 rounded-xl bg-surface shadow-soft ring-1 ring-line transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-              style={{ width: "calc((100% - 0.5rem) / 5)", transform: `translateX(${platformIndex * 100}%)` }}
-            />
+          <div role="radiogroup" aria-labelledby="platform-label" className="relative isolate grid grid-cols-5 gap-0.5 rounded-2xl bg-ink/[0.05] p-1">
             {PLATFORMS.map((p: Platform) => {
               const active = p === platform;
               return (
@@ -144,11 +185,25 @@ export function Generator({ studio }: { studio: StudioState }) {
                   aria-label={PLATFORM_LABELS[p]}
                   onClick={() => setPlatform(p)}
                   className={cn(
-                    "relative z-10 flex h-10 items-center justify-center gap-2 rounded-xl text-[13px] font-medium transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+                    "relative isolate flex h-10 min-w-0 items-center justify-center gap-2 rounded-xl text-[13px] font-medium transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
                     active ? "text-ink" : "text-muted hover:text-ink-2",
                   )}
                 >
-                  <PlatformIcon platform={p} className="size-[18px]" />
+                  {active && (
+                    <motion.span
+                      layoutId="platform-pill"
+                      aria-hidden
+                      className="absolute inset-0 -z-10 rounded-xl bg-surface shadow-soft ring-1 ring-line"
+                      transition={PILL_SPRING}
+                    />
+                  )}
+                  <motion.span
+                    className="inline-flex"
+                    animate={{ scale: active ? 1.08 : 1 }}
+                    transition={PILL_SPRING}
+                  >
+                    <PlatformIcon platform={p} className="size-[18px]" />
+                  </motion.span>
                   <span className="hidden md:inline">{PLATFORM_LABELS[p]}</span>
                 </button>
               );
@@ -164,21 +219,31 @@ export function Generator({ studio }: { studio: StudioState }) {
               {TONES.map((t) => {
                 const active = t === tone;
                 return (
-                  <button
+                  <motion.button
                     key={t}
                     type="button"
                     role="radio"
                     aria-checked={active}
                     onClick={() => setTone(t)}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
                     className={cn(
-                      "h-9 rounded-full border px-3.5 text-[13px] font-medium transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]",
+                      "relative isolate h-9 rounded-full border px-3.5 text-[13px] font-medium transition-[border-color,color] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                       active
-                        ? "border-transparent bg-ink text-paper shadow-soft"
+                        ? "border-transparent text-paper"
                         : "border-line bg-surface text-ink-2 hover:border-line-strong hover:text-ink",
                     )}
                   >
+                    {active && (
+                      <motion.span
+                        layoutId="tone-pill"
+                        aria-hidden
+                        className="absolute -inset-px -z-10 rounded-full bg-ink shadow-soft"
+                        transition={PILL_SPRING}
+                      />
+                    )}
                     {TONE_LABEL[t]}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
@@ -187,12 +252,7 @@ export function Generator({ studio }: { studio: StudioState }) {
           {/* Count */}
           <fieldset className="flex flex-col gap-2.5">
             <legend className="mb-2.5 text-sm font-medium text-ink">Options</legend>
-            <div role="radiogroup" aria-label="Number of options" className="relative grid w-28 grid-cols-2 rounded-full bg-ink/[0.05] p-1">
-              <span
-                aria-hidden
-                className="absolute inset-y-1 left-1 rounded-full bg-surface shadow-soft ring-1 ring-line transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                style={{ width: "calc((100% - 0.5rem) / 2)", transform: `translateX(${count === 2 ? 0 : 100}%)` }}
-              />
+            <div role="radiogroup" aria-label="Number of options" className="relative isolate grid w-28 grid-cols-2 rounded-full bg-ink/[0.05] p-1">
               {([2, 3] as const).map((n) => (
                 <button
                   key={n}
@@ -202,10 +262,18 @@ export function Generator({ studio }: { studio: StudioState }) {
                   aria-label={`${n} options`}
                   onClick={() => setCount(n)}
                   className={cn(
-                    "relative z-10 h-8 rounded-full text-sm font-semibold tabular transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+                    "relative isolate h-8 rounded-full text-sm font-semibold tabular transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
                     count === n ? "text-ink" : "text-muted hover:text-ink-2",
                   )}
                 >
+                  {count === n && (
+                    <motion.span
+                      layoutId="count-pill"
+                      aria-hidden
+                      className="absolute inset-0 -z-10 rounded-full bg-surface shadow-soft ring-1 ring-line"
+                      transition={PILL_SPRING}
+                    />
+                  )}
                   {n}
                 </button>
               ))}
@@ -216,21 +284,33 @@ export function Generator({ studio }: { studio: StudioState }) {
         {/* Footer */}
         <div className="flex flex-col-reverse gap-4 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-h-5 min-w-0 text-[13px] leading-snug" aria-live="polite">
+            <AnimatePresence mode="wait" initial={false}>
             {error ? (
-              <div
+              <motion.div
+                key={`error-${error.kind}`}
+                initial={{ opacity: 0, y: 6, filter: "blur(4px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)", x: error.kind === "rate" || error.kind === "config" ? 0 : [0, -5, 5, -3, 3, 0] }}
+                exit={{ opacity: 0, y: -4, transition: { duration: 0.14 } }}
+                transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1], x: { duration: 0.4 } }}
                 role={error.kind === "config" ? "status" : "alert"}
                 className={cn(
-                  "flex animate-fade-up items-start gap-2",
+                  "flex items-start gap-2",
                   error.kind === "config" || error.kind === "rate" ? "text-ink-2" : "text-danger",
                 )}
               >
                 {error.kind === "rate" ? (
-                  <Timer className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
+                  <CooldownRing seconds={cooldown} />
                 ) : (
                   <CircleAlert className={cn("mt-0.5 size-4 shrink-0", error.kind === "config" && "text-warning")} aria-hidden />
                 )}
                 <span className="min-w-0">
-                  {error.kind === "rate" ? `${error.message} Try again in ${cooldown}s.` : error.message}
+                  {error.kind === "rate" ? (
+                    <>
+                      {error.message} Try again in <Countdown value={cooldown} />s.
+                    </>
+                  ) : (
+                    error.message
+                  )}
                   {error.kind !== "rate" && error.kind !== "config" && error.kind !== "auth" && (
                     <button
                       type="button"
@@ -241,19 +321,40 @@ export function Generator({ studio }: { studio: StudioState }) {
                     </button>
                   )}
                 </span>
-              </div>
+              </motion.div>
             ) : meta ? (
-              <p className="flex animate-fade-up items-center gap-1.5 text-muted">
+              <motion.p
+                key="meta"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4, transition: { duration: 0.14 } }}
+                className="flex items-center gap-1.5 text-muted"
+              >
                 <Cpu className="size-3.5 shrink-0" aria-hidden />
                 <span className="truncate">
                   Generated with {meta.model} · {meta.remaining} left this minute
                 </span>
-              </p>
+              </motion.p>
             ) : (
-              <p className="text-muted">Cadence writes {count} on-brand options with hashtags in seconds.</p>
+              <motion.p
+                key="idle"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                className="text-muted"
+              >
+                Cadence writes {count} on-brand options with hashtags in seconds.
+              </motion.p>
             )}
+            </AnimatePresence>
           </div>
 
+          <motion.div
+            className="relative w-full shrink-0 rounded-full sm:w-auto"
+            whileHover={canGenerate && !loading ? { scale: 1.015 } : undefined}
+            whileTap={canGenerate && !loading ? { scale: 0.96 } : undefined}
+            transition={{ type: "spring", stiffness: 520, damping: 28 }}
+          >
           <Button
             type="submit"
             size="lg"
@@ -263,7 +364,7 @@ export function Generator({ studio }: { studio: StudioState }) {
           >
             {cooldown > 0 ? (
               <>
-                <Timer /> Try again in {cooldown}s
+                <Timer /> Try again in <Countdown value={cooldown} />s
               </>
             ) : (
               <>
@@ -272,8 +373,70 @@ export function Generator({ studio }: { studio: StudioState }) {
               </>
             )}
           </Button>
+            <AnimatePresence>
+              {loading && (
+                <motion.span
+                  key="shimmer"
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 overflow-hidden rounded-full"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <motion.span
+                    className="absolute inset-y-0 -left-1/2 w-1/2 -skew-x-12 bg-linear-to-r from-transparent via-white/35 to-transparent"
+                    animate={{ x: ["0%", "400%"] }}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </div>
       </form>
+      </LayoutGroup>
     </section>
+  );
+}
+
+/** Rolling digit for the rate-limit countdown. */
+function Countdown({ value }: { value: number }) {
+  return (
+    <span className="relative inline-flex overflow-hidden tabular">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={value}
+          className="inline-block"
+          initial={{ y: "-70%", opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: "70%", opacity: 0 }}
+          transition={{ type: "spring", stiffness: 500, damping: 34 }}
+        >
+          {value}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
+/** Tiny ring that drains as the cooldown counts down (assumes a 60s window). */
+function CooldownRing({ seconds }: { seconds: number }) {
+  const progress = Math.max(0, Math.min(1, seconds / 60));
+  return (
+    <svg viewBox="0 0 20 20" className="mt-0.5 size-4 shrink-0 -rotate-90 text-warning" aria-hidden>
+      <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeOpacity={0.2} strokeWidth={2.5} />
+      <motion.circle
+        cx="10"
+        cy="10"
+        r="8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        initial={false}
+        animate={{ pathLength: progress }}
+        transition={{ duration: 0.9, ease: "linear" }}
+      />
+    </svg>
   );
 }

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CalendarClock, FileText, Heart, MessageCircle, Repeat2, Send, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -16,6 +17,7 @@ import { PlatformIcon } from "./platform-icon";
 import { mergeHashtags, parseHashtags, postLength } from "./use-studio";
 
 const MAX_NOTES = 1000;
+const CHIP_SPRING = { type: "spring", stiffness: 480, damping: 32, mass: 0.7 } as const;
 
 /** Format a Date as a `datetime-local` value in the viewer's own time zone. */
 function toLocalInput(d: Date) {
@@ -193,8 +195,12 @@ export function ScheduleComposer({
   return (
     <section
       aria-labelledby="composer-title"
-      className="glass animate-fade-up overflow-hidden rounded-[28px] border border-line shadow-lift"
+      className="glass relative overflow-hidden rounded-[28px] border border-line shadow-lift"
     >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-accent/50 to-transparent"
+      />
       <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-5 sm:px-7">
         <div className="min-w-0">
           <p className="eyebrow text-accent">Step 3</p>
@@ -247,10 +253,16 @@ export function ScheduleComposer({
                 errors.hashtags && "border-danger",
               )}
             >
+              <AnimatePresence initial={false} mode="popLayout">
               {hashtags.map((tag) => (
-                <span
+                <motion.span
                   key={tag}
-                  className="inline-flex h-7 animate-pop-in items-center gap-1 rounded-full bg-accent-soft pr-1 pl-2.5 text-[13px] font-medium text-accent"
+                  layout
+                  initial={{ opacity: 0, scale: 0.7, filter: "blur(4px)" }}
+                  animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, scale: 0.7, filter: "blur(4px)", transition: { duration: 0.14 } }}
+                  transition={CHIP_SPRING}
+                  className="inline-flex h-7 items-center gap-1 rounded-full bg-accent-soft pr-1 pl-2.5 text-[13px] font-medium text-accent"
                 >
                   #{tag}
                   <button
@@ -261,8 +273,9 @@ export function ScheduleComposer({
                   >
                     <X className="size-3" />
                   </button>
-                </span>
+                </motion.span>
               ))}
+              </AnimatePresence>
               <input
                 {...describe("composer-tags", errors.hashtags)}
                 value={tagDraft}
@@ -302,18 +315,21 @@ export function ScheduleComposer({
               />
               <div className="flex flex-wrap gap-2">
                 {QUICK_TIMES.map((q) => (
-                  <button
+                  <motion.button
                     key={q.label}
                     type="button"
                     onClick={() => {
                       setWhen(toLocalInput(q.make()));
                       clearError("scheduled_at");
                     }}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-[13px] text-ink-2 transition-all duration-200 hover:border-line-strong hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.94 }}
+                    transition={{ type: "spring", stiffness: 520, damping: 28 }}
+                    className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-surface px-3 text-[13px] text-ink-2 transition-[border-color,color,background-color] duration-200 hover:border-line-strong hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
                     <CalendarClock className="size-3.5 text-muted" aria-hidden />
                     {q.label}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -364,18 +380,19 @@ export function ScheduleComposer({
                 notify ? "bg-accent" : "bg-ink/15",
               )}
             >
-              <span
+              <motion.span
                 aria-hidden
-                className={cn(
-                  "absolute top-0.5 left-0.5 size-6 rounded-full bg-white shadow-soft transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                  notify && "translate-x-5",
-                )}
+                className="absolute top-0.5 left-0.5 size-6 rounded-full bg-white shadow-soft"
+                initial={false}
+                animate={{ x: notify ? 20 : 0 }}
+                transition={{ type: "spring", stiffness: 600, damping: 34 }}
               />
             </button>
           </label>
 
           {/* Two equal buttons that always fit the column (stack on very narrow screens). */}
           <div className="grid min-w-0 grid-cols-1 gap-3 pt-1 min-[420px]:grid-cols-2">
+            <motion.div className="min-w-0" whileTap={pending ? undefined : { scale: 0.97 }} transition={{ type: "spring", stiffness: 520, damping: 28 }}>
             <Button
               type="button"
               variant="secondary"
@@ -387,6 +404,8 @@ export function ScheduleComposer({
             >
               <FileText /> Save draft
             </Button>
+            </motion.div>
+            <motion.div className="min-w-0" whileTap={pending ? undefined : { scale: 0.97 }} transition={{ type: "spring", stiffness: 520, damping: 28 }}>
             <Button
               type="submit"
               size="lg"
@@ -396,13 +415,25 @@ export function ScheduleComposer({
             >
               <Send /> Schedule post
             </Button>
+            </motion.div>
           </div>
         </div>
 
         {/* Live preview */}
         <aside aria-label="Post preview" className="min-w-0 xl:sticky xl:top-24 xl:self-start">
-          <p className="eyebrow mb-3">Preview</p>
-          <div className="overflow-hidden rounded-3xl border border-line bg-surface shadow-soft">
+          <p className="eyebrow mb-3 flex items-center gap-2">
+            Preview
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-semibold text-success">
+              <span className="size-1.5 rounded-full bg-success" aria-hidden />
+              Live
+            </span>
+          </p>
+          <motion.div
+            className="overflow-hidden rounded-3xl border border-line bg-surface shadow-soft"
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.12 }}
+          >
             <div className="flex items-center gap-3 px-4 pt-4">
               <span className="grid size-10 shrink-0 place-items-center rounded-full bg-linear-to-br from-accent to-accent-hover text-sm font-semibold text-accent-ink">
                 {displayName.charAt(0) || "Y"}
@@ -420,15 +451,39 @@ export function ScheduleComposer({
               <p className="text-[14px] leading-relaxed break-words whitespace-pre-line text-ink">
                 {caption.trim() || <span className="text-faint">Your caption will appear here.</span>}
               </p>
-              {previewTags && <p className="mt-2 text-[14px] leading-relaxed break-words text-accent">{previewTags}</p>}
+              <AnimatePresence initial={false}>
+                {previewTags && (
+                  <motion.p
+                    key="tags"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden text-[14px] leading-relaxed break-words text-accent"
+                  >
+                    <span className="block pt-2">{previewTags}</span>
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+            {/* Character budget meter: grows as you type */}
+            <div className="mx-4 mb-3 h-1 overflow-hidden rounded-full bg-ink/[0.06]" aria-hidden>
+              <motion.div
+                className={cn("h-full origin-left rounded-full", over ? "bg-warning" : "bg-accent")}
+                initial={false}
+                animate={{ scaleX: Math.min(1, length / limit) }}
+                transition={{ type: "spring", stiffness: 200, damping: 30 }}
+              />
             </div>
             <div className="flex items-center gap-5 border-t border-line px-4 py-3 text-muted" aria-hidden>
               <Heart className="size-4" />
               <MessageCircle className="size-4" />
               <Repeat2 className="size-4" />
-              <span className="ml-auto text-xs">{PLATFORM_LABELS[platform]}</span>
+              <span className="ml-auto text-xs tabular">
+                {PLATFORM_LABELS[platform]} · {Math.max(0, limit - length).toLocaleString("en-US")} left
+              </span>
             </div>
-          </div>
+          </motion.div>
         </aside>
       </form>
     </section>

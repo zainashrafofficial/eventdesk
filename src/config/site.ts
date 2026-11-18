@@ -7,5 +7,15 @@ export const site = {
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
 };
 
+/** Competition + authorship credits, rendered on the landing page, auth pages and studio footer. */
+export const credits = {
+  event: "VSpark 2026",
+  track: "Web Development Competition",
+  university: "COMSATS University Islamabad",
+  campus: "Vehari Campus",
+  department: "Department of Computer Science",
+  developer: "Zain Ashraf",
+} as const;
+
 /** Navigation for the signed-in area (Cadence is a single-page studio). */
 export const appNav = [{ href: "/dashboard", label: "Studio", icon: "overview" }] as const;

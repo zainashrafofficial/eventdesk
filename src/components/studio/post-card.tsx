@@ -44,6 +44,37 @@ import {
   Tooltip,
 } from "@/components/ui/overlay";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+
+const PRESS_SPRING = { type: "spring", stiffness: 600, damping: 30 } as const;
+const HEIGHT_SPRING = { type: "spring", stiffness: 320, damping: 36, mass: 0.9 } as const;
+
+/** Wraps an action so it squashes on press with a spring (no-op under reduced motion). */
+function Press({ children }: { children: React.ReactNode }) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.span
+      className="inline-flex shrink-0"
+      whileTap={reduce ? undefined : { scale: 0.86 }}
+      whileHover={reduce ? undefined : { scale: 1.06 }}
+      transition={PRESS_SPRING}
+    >
+      {children}
+    </motion.span>
+  );
+}
+
+/** Tiny status dot; `live` adds a soft expanding halo. */
+function StatusDot({ tone, live }: { tone: "success" | "accent" | "danger" | "neutral"; live?: boolean }) {
+  const color =
+    tone === "success" ? "bg-success" : tone === "accent" ? "bg-accent" : tone === "danger" ? "bg-danger" : "bg-faint";
+  return (
+    <span aria-hidden className="relative flex size-1.5 shrink-0">
+      {live && <span className={cn("absolute inset-0 animate-pulse-dot rounded-full motion-reduce:hidden", color)} />}
+      <span className={cn("relative size-1.5 rounded-full", color)} />
+    </span>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Shared client clock (hydration-safe: 0 on the server)              */
@@ -156,7 +187,7 @@ function Pill({
   return (
     <span
       className={cn(
-        "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium [&_svg]:size-3.5",
+        "inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[12px] font-medium [&_svg]:size-3.5 [&_svg]:shrink-0",
         tone === "neutral" && "bg-ink/[0.045] text-muted",
         tone === "success" && "bg-success-soft text-success",
         tone === "danger" && "bg-danger-soft text-danger",
@@ -185,6 +216,7 @@ export function PostCard({
   style?: React.CSSProperties;
 }) {
   const router = useRouter();
+  const reduce = useReducedMotion();
   const now = useNow();
   const status = effectiveStatus(post, now);
   const [editing, setEditing] = React.useState(false);
@@ -249,9 +281,9 @@ export function PostCard({
       style={style}
       aria-busy={removing || undefined}
       className={cn(
-        "group/card relative animate-fade-up rounded-3xl border border-line bg-surface/80 p-5 shadow-soft backdrop-blur-xl",
+        "group/card relative min-w-0 rounded-3xl border border-line bg-surface/80 p-4 shadow-soft backdrop-blur-xl backdrop-saturate-150 sm:p-5",
         "transition-[box-shadow,border-color,opacity,transform] duration-300 ease-[var(--ease-out-expo)]",
-        "hover:border-line-strong hover:shadow-lift md:p-6",
+        "hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lift motion-reduce:hover:translate-y-0 md:p-6",
         removing && "pointer-events-none scale-[0.985] opacity-40",
         editing && "border-accent/30 shadow-lift ring-4 ring-accent/[0.06]",
         className,
@@ -261,28 +293,46 @@ export function PostCard({
       <header className="flex items-start gap-3">
         <span
           className={cn(
-            "grid size-10 shrink-0 place-items-center rounded-2xl bg-surface-2 ring-1 ring-line",
+            "relative grid size-10 shrink-0 place-items-center rounded-[0.9rem] bg-gradient-to-b from-surface to-surface-2 shadow-[0_1px_2px_rgb(var(--shadow-color)/0.06)] ring-1 ring-line",
+            "transition-transform duration-300 ease-[var(--ease-out-expo)] group-hover/card:scale-[1.04] motion-reduce:group-hover/card:scale-100",
             PLATFORM_TINT[post.platform],
           )}
         >
           <PlatformGlyph platform={post.platform} className="size-[18px]" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[15px] font-semibold tracking-tight text-ink">{PLATFORM_LABELS[post.platform]}</span>
-            {status === "scheduled" && (
-              <Badge tone="accent" dot>
-                Scheduled
-              </Badge>
-            )}
-            {status === "draft" && <Badge tone="neutral">Draft</Badge>}
-            {status === "published" && (
-              <Badge tone="success">
-                <Check /> Published
-              </Badge>
-            )}
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="whitespace-nowrap text-[15px] font-semibold tracking-tight text-ink">
+              {PLATFORM_LABELS[post.platform]}
+            </span>
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={status}
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.85 }}
+                transition={PRESS_SPRING}
+                className="inline-flex shrink-0"
+              >
+                {status === "scheduled" && (
+                  <Badge tone="accent" className="whitespace-nowrap">
+                    <StatusDot tone="accent" live /> Scheduled
+                  </Badge>
+                )}
+                {status === "draft" && (
+                  <Badge tone="neutral" className="whitespace-nowrap">
+                    <StatusDot tone="neutral" /> Draft
+                  </Badge>
+                )}
+                {status === "published" && (
+                  <Badge tone="success" className="whitespace-nowrap">
+                    <Check /> Published
+                  </Badge>
+                )}
+              </motion.span>
+            </AnimatePresence>
           </div>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[13px] text-muted">
+          <p className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-[13px] tabular text-muted [&>*]:whitespace-nowrap">
             {post.scheduled_at ? (
               <>
                 <CalendarClock className="size-3.5" aria-hidden />
@@ -304,22 +354,28 @@ export function PostCard({
 
         {!editing && (
           <div className="-mr-1.5 -mt-1 flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity duration-200 md:opacity-60 md:group-hover/card:opacity-100 md:focus-within:opacity-100">
-            <Tooltip content="Edit">
-              <Button variant="ghost" size="icon-sm" aria-label="Edit post" onClick={() => setEditing(true)}>
-                <Pencil />
-              </Button>
-            </Tooltip>
-            <Tooltip content="Copy caption">
-              <Button variant="ghost" size="icon-sm" aria-label="Copy caption" onClick={copyCaption}>
-                <Copy />
-              </Button>
-            </Tooltip>
-            <Menu>
-              <MenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="More actions" disabled={converting}>
-                  {converting ? <Spinner className="size-3.5" /> : <Ellipsis />}
+            <Press>
+              <Tooltip content="Edit">
+                <Button variant="ghost" size="icon-sm" aria-label="Edit post" onClick={() => setEditing(true)}>
+                  <Pencil />
                 </Button>
-              </MenuTrigger>
+              </Tooltip>
+            </Press>
+            <Press>
+              <Tooltip content="Copy caption">
+                <Button variant="ghost" size="icon-sm" aria-label="Copy caption" onClick={copyCaption}>
+                  <Copy />
+                </Button>
+              </Tooltip>
+            </Press>
+            <Menu>
+              <Press>
+                <MenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label="More actions" disabled={converting}>
+                    {converting ? <Spinner className="size-3.5" /> : <Ellipsis />}
+                  </Button>
+                </MenuTrigger>
+              </Press>
               <MenuContent>
                 <MenuItem onSelect={() => setEditing(true)}>
                   <Pencil /> Edit post
@@ -359,15 +415,32 @@ export function PostCard({
         )}
       </header>
 
+      <AnimatePresence initial={false} mode="wait">
       {editing ? (
-        <PostEditor post={post} onDone={() => setEditing(false)} />
+        <motion.div
+          key="editor"
+          initial={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+          animate={reduce ? { opacity: 1 } : { opacity: 1, height: "auto" }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0, transition: { duration: 0.18 } }}
+          transition={HEIGHT_SPRING}
+          className="-mx-1 overflow-hidden px-1"
+        >
+          <PostEditor post={post} onDone={() => setEditing(false)} />
+        </motion.div>
       ) : (
-        <>
+        <motion.div
+          key="body"
+          initial={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+          animate={reduce ? { opacity: 1 } : { opacity: 1, height: "auto" }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0, transition: { duration: 0.16 } }}
+          transition={HEIGHT_SPRING}
+          className="overflow-hidden"
+        >
           {/* Caption */}
           <div className="mt-4">
             <p
               className={cn(
-                "whitespace-pre-line text-[15px] leading-relaxed text-ink",
+                "whitespace-pre-line text-pretty break-words text-[15px] leading-[1.6] tracking-[-0.005em] text-ink",
                 !expanded && "line-clamp-4",
               )}
             >
@@ -390,9 +463,10 @@ export function PostCard({
               {post.hashtags.map((tag) => (
                 <li
                   key={tag}
-                  className="rounded-full bg-accent-soft px-2.5 py-1 text-[12.5px] font-medium text-accent"
+                  className="max-w-full truncate rounded-full bg-accent-soft px-2.5 py-1 text-[12.5px] font-medium text-accent ring-1 ring-accent/10 transition-colors duration-200 hover:bg-accent/15"
                 >
-                  #{tag}
+                  <span className="opacity-60">#</span>
+                  {tag}
                 </li>
               ))}
             </ul>
@@ -406,12 +480,13 @@ export function PostCard({
           )}
 
           {/* Status row */}
-          <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-line pt-4">
+          <div className="mt-4 flex min-w-0 flex-wrap items-center gap-1.5 border-t border-line pt-4">
             <DrivePill post={post} driveConnected={driveConnected} syncing={syncing} onSync={sync} />
             <EmailPill post={post} status={status} />
           </div>
-        </>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <ConfirmDialog
         open={confirmOpen}
@@ -443,18 +518,21 @@ function DrivePill({
 }) {
   if (post.drive_sync_error) {
     return (
-      <span className="inline-flex items-center gap-1">
+      <span className="inline-flex shrink-0 items-center gap-1">
         <Tooltip content={post.drive_sync_error}>
           <span tabIndex={0} className="rounded-full focus-visible:outline-2 focus-visible:outline-accent">
             <Pill tone="danger">
+              <StatusDot tone="danger" />
               <CircleAlert /> Sync failed
             </Pill>
           </span>
         </Tooltip>
         {driveConnected && (
-          <Button variant="ghost" size="xs" className="h-7 px-2.5" onClick={onSync} disabled={syncing}>
-            {syncing ? <Spinner className="size-3.5" /> : <RefreshCw />} Retry
-          </Button>
+          <Press>
+            <Button variant="ghost" size="xs" className="h-7 shrink-0 whitespace-nowrap px-2.5" onClick={onSync} disabled={syncing}>
+              {syncing ? <Spinner className="size-3.5" /> : <RefreshCw />} Retry
+            </Button>
+          </Press>
         )}
       </span>
     );
@@ -468,6 +546,7 @@ function DrivePill({
         className="group/drive rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <Pill tone="success" className="transition-colors group-hover/drive:bg-success/15">
+          <StatusDot tone="success" />
           <DriveMark className="size-3.5" /> Synced to Drive
           <ArrowUpRight className="-ml-0.5 transition-transform duration-200 group-hover/drive:-translate-y-px group-hover/drive:translate-x-px" />
         </Pill>
@@ -476,13 +555,15 @@ function DrivePill({
   }
   if (!driveConnected) return null;
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex shrink-0 items-center gap-1">
       <Pill>
         <CloudOff /> Not synced
       </Pill>
-      <Button variant="ghost" size="xs" className="h-7 px-2.5" onClick={onSync} disabled={syncing}>
-        {syncing ? <Spinner className="size-3.5" /> : <RefreshCw />} Sync
-      </Button>
+      <Press>
+        <Button variant="ghost" size="xs" className="h-7 shrink-0 whitespace-nowrap px-2.5" onClick={onSync} disabled={syncing}>
+          {syncing ? <Spinner className="size-3.5" /> : <RefreshCw />} Sync
+        </Button>
+      </Press>
     </span>
   );
 }
@@ -499,16 +580,19 @@ function EmailPill({ post, status }: { post: PostRow; status: EffectiveStatus })
     <>
       {post.confirmation_sent_at && (
         <Pill tone="neutral">
-          <MailCheck /> Confirmation sent
+          <StatusDot tone="success" />
+          <MailCheck /> Email sent
         </Pill>
       )}
       {post.reminder_sent_at ? (
         <Pill tone="neutral">
+          <StatusDot tone="success" />
           <BellRing /> Reminder sent
         </Pill>
       ) : (
         status === "scheduled" && (
           <Pill tone="accent">
+            <StatusDot tone="accent" live />
             <Mail /> Reminder queued
           </Pill>
         )
@@ -599,7 +683,7 @@ function PostEditor({ post, onDone }: { post: PostRow; onDone: () => void }) {
   const id = (name: string) => `${uid}-${name}`;
 
   return (
-    <form onSubmit={save} className="mt-5 flex animate-fade-up flex-col gap-4" noValidate>
+    <form onSubmit={save} className="flex flex-col gap-4 pb-1 pt-5" noValidate>
       <FormAlert message={error} />
       <Field
         label="Caption"
@@ -672,10 +756,10 @@ function PostEditor({ post, onDone }: { post: PostRow; onDone: () => void }) {
       </Field>
 
       <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
-        <Button type="button" variant="secondary" size="sm" onClick={onDone} disabled={pending}>
+        <Button type="button" variant="secondary" size="sm" className="whitespace-nowrap" onClick={onDone} disabled={pending}>
           Cancel
         </Button>
-        <Button type="submit" size="sm" loading={pending} disabled={over}>
+        <Button type="submit" size="sm" className="whitespace-nowrap" loading={pending} disabled={over}>
           {post.status === "draft" && when ? "Save & schedule" : "Save changes"}
         </Button>
       </div>

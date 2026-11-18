@@ -6,6 +6,7 @@ import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme";
 import { Avatar } from "@/components/ui/display";
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/overlay";
+import { credits, site } from "@/config/site";
 import { signOut } from "@/lib/actions/auth";
 
 type ShellUser = { email: string; fullName: string };
@@ -42,13 +43,13 @@ function UserMenu({ user }: { user: ShellUser }) {
 export function AppShell({ user, children }: { user: ShellUser; children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-paper">
-      <header className="glass sticky top-0 z-50 border-b border-line/80">
+      <header className="glass sticky top-0 z-50 border-b-[0.5px] border-line-strong/70 shadow-[0_1px_0_0_rgb(255_255_255/0.5)_inset] dark:shadow-[0_1px_0_0_rgb(255_255_255/0.04)_inset]">
         <div className="container-app flex h-14 items-center justify-between gap-3 md:h-16">
           <div className="flex min-w-0 items-center gap-3">
             <Logo href="/dashboard" />
             <span aria-hidden className="hidden h-5 w-px bg-line-strong sm:block" />
-            <span className="hidden items-center gap-1.5 text-[13px] font-medium text-muted sm:inline-flex">
-              <Sparkles className="size-3.5 text-accent" />
+            <span className="hidden items-center gap-1.5 rounded-full bg-ink/[0.04] px-2.5 py-1 text-[12.5px] font-medium text-ink-2 sm:inline-flex">
+              <Sparkles className="size-3.5 text-accent" aria-hidden />
               Studio
             </span>
           </div>
@@ -59,9 +60,24 @@ export function AppShell({ user, children }: { user: ShellUser; children: React.
         </div>
       </header>
 
-      <main id="main" className="flex-1 pb-20">
+      <main id="main" className="flex-1 pb-8">
         {children}
       </main>
+
+      <footer className="border-t-[0.5px] border-line-strong/60">
+        <div className="container-app flex flex-col items-center gap-1 py-5 text-center text-[12px] leading-relaxed text-faint sm:flex-row sm:justify-between sm:text-left">
+          <p className="min-w-0">
+            <span className="font-medium text-muted">{site.name}</span>
+            <span aria-hidden> · </span>
+            Built for {credits.event}
+            <span aria-hidden> · </span>
+            {credits.university}, {credits.campus}
+          </p>
+          <p className="shrink-0">
+            by <span className="font-medium text-muted">{credits.developer}</span>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
