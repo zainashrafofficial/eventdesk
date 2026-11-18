@@ -7,7 +7,7 @@ import { generateSchema } from "@/lib/validation/generate";
 import type { GenerateResponse } from "@/types/db";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 function json(body: GenerateResponse, status: number, headers?: Record<string, string>) {
   return NextResponse.json<GenerateResponse>(body, {

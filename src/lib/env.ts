@@ -18,7 +18,7 @@ export function serverEnv() {
   return {
     supabaseSecretKey: process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
     geminiApiKey: process.env.GEMINI_API_KEY ?? "",
-    geminiModel: process.env.GEMINI_MODEL ?? "gemini-flash-latest",
+    geminiModel: process.env.GEMINI_MODEL ?? "gemini-flash-lite-latest",
     googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
     resendApiKey: process.env.RESEND_API_KEY ?? "",

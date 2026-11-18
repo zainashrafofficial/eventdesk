@@ -96,7 +96,7 @@ const geminiErrorBodySchema = z.object({
 });
 
 function modelChain(): string[] {
-  const chain = [serverEnv().geminiModel, "gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash"]
+  const chain = [serverEnv().geminiModel, "gemini-flash-lite-latest", "gemini-flash-latest"]
     .map((m) => m.trim())
     .filter(Boolean);
   return [...new Set(chain)];
@@ -157,6 +157,9 @@ async function callModel(model: string, req: GenerateRequest): Promise<Attempt> 
       temperature: 0.9,
       responseMimeType: "application/json",
       responseSchema: RESPONSE_SCHEMA,
+      // Captions don't need step-by-step reasoning: disabling "thinking" cuts latency from ~25s to ~5-9s.
+      // (Lite models don't think and reject this field.)
+      ...(model.includes("lite") ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
     },
   };
 
@@ -242,11 +245,23 @@ export async function generateCaptions(req: GenerateRequest): Promise<{ options:
     throw new GeminiError("AI generation isn't configured. Add GEMINI_API_KEY.", 503);
   }
 
+  // Resilience: walk the model chain. A missing model (404), an overloaded model (502/503) or a slow
+  // model (504 timeout) moves on to the next one; key/safety/rate-limit errors stop immediately.
+  let lastError: GeminiError | null = null;
   for (const model of modelChain()) {
-    const result = await callModel(model, req);
-    if (result.kind === "ok") return { options: result.options, model };
-    console.warn(`[gemini] model "${model}" not found, trying the next fallback`);
+    try {
+      const result = await callModel(model, req);
+      if (result.kind === "ok") return { options: result.options, model };
+      console.warn(`[gemini] model "${model}" not found, trying the next fallback`);
+    } catch (err) {
+      if (err instanceof GeminiError && (err.status === 502 || err.status === 504)) {
+        console.warn(`[gemini] model "${model}" failed (${err.status}), trying the next fallback`);
+        lastError = err;
+        continue;
+      }
+      throw err;
+    }
   }
 
-  throw new GeminiError("No available Gemini model answered. Check GEMINI_MODEL.", 502);
+  throw lastError ?? new GeminiError("No available Gemini model answered. Check GEMINI_MODEL.", 502);
 }
