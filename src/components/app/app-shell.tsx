@@ -1,94 +1,34 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { CalendarDays, LayoutDashboard, LogOut, Menu as MenuIcon, Plus } from "lucide-react";
+import { LogOut, Sparkles } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
-import { ThemeSwitch } from "@/components/theme";
+import { ThemeToggle } from "@/components/theme";
 import { Avatar } from "@/components/ui/display";
-import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger, Sheet, SheetContent, SheetTrigger } from "@/components/ui/overlay";
-import { appNav } from "@/config/site";
+import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from "@/components/ui/overlay";
 import { signOut } from "@/lib/actions/auth";
-import { cn } from "@/lib/utils";
-
-const ICONS = { overview: LayoutDashboard, events: CalendarDays, new: Plus } as const;
 
 type ShellUser = { email: string; fullName: string };
-
-function isActive(pathname: string, href: string) {
-  if (href === "/dashboard") return pathname === "/dashboard";
-  if (href === "/dashboard/events") {
-    return pathname.startsWith("/dashboard/events") && pathname !== "/dashboard/events/new";
-  }
-  return pathname === href;
-}
-
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
-  const pathname = usePathname();
-  return (
-    <nav aria-label="App" className="flex flex-col gap-1">
-      {appNav.map((item) => {
-        const Icon = ICONS[item.icon];
-        const active = isActive(pathname, item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors",
-              active ? "bg-ink text-paper" : "text-ink-2 hover:bg-ink/[0.05] hover:text-ink",
-            )}
-          >
-            <Icon className="size-4" />
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
-function SignOutButton({ className }: { className?: string }) {
-  return (
-    <form action={signOut}>
-      <button
-        type="submit"
-        className={cn(
-          "flex h-10 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-ink-2 transition-colors hover:bg-danger-soft hover:text-danger",
-          className,
-        )}
-      >
-        <LogOut className="size-4" />
-        Sign out
-      </button>
-    </form>
-  );
-}
 
 function UserMenu({ user }: { user: ShellUser }) {
   const formRef = React.useRef<HTMLFormElement>(null);
   return (
     <Menu>
       <MenuTrigger
-        className="flex items-center gap-2 rounded-full p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="flex items-center gap-2 rounded-full p-0.5 outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
         aria-label="Account menu"
       >
-        <Avatar name={user.fullName} size={34} />
+        <Avatar name={user.fullName} size={32} />
       </MenuTrigger>
-      <MenuContent className="w-60">
-        <MenuLabel className="normal-case tracking-normal">
-          <span className="block truncate text-sm font-medium text-ink">{user.fullName}</span>
-          <span className="block truncate text-xs text-muted">{user.email}</span>
+      <MenuContent className="w-64 rounded-2xl p-2">
+        <MenuLabel className="flex items-center gap-3 px-2 py-2">
+          <Avatar name={user.fullName} size={36} />
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold tracking-[-0.01em] text-ink">{user.fullName}</span>
+            <span className="block truncate text-xs font-normal tracking-normal text-muted">{user.email}</span>
+          </span>
         </MenuLabel>
         <MenuSeparator />
-        <MenuItem asChild>
-          <Link href="/dashboard/events/new">
-            <Plus /> New event
-          </Link>
-        </MenuItem>
         <MenuItem destructive onSelect={() => formRef.current?.requestSubmit()}>
           <LogOut /> Sign out
         </MenuItem>
@@ -98,59 +38,30 @@ function UserMenu({ user }: { user: ShellUser }) {
   );
 }
 
+/** Single-page studio shell: one frosted top bar, full-width content (pages use `container-app`). */
 export function AppShell({ user, children }: { user: ShellUser; children: React.ReactNode }) {
-  const [open, setOpen] = React.useState(false);
-
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[16rem_1fr]">
-      {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-surface px-4 py-5 lg:flex">
-        <Logo href="/dashboard" className="px-2" />
-        <div className="mt-8 flex-1">
-          <NavLinks />
-        </div>
-        <div className="flex flex-col gap-3 border-t border-line pt-4">
-          <div className="flex items-center gap-3 px-2">
-            <Avatar name={user.fullName} size={34} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-ink">{user.fullName}</p>
-              <p className="truncate text-xs text-muted">{user.email}</p>
-            </div>
+    <div className="flex min-h-dvh flex-col bg-paper">
+      <header className="glass sticky top-0 z-50 border-b border-line/80">
+        <div className="container-app flex h-14 items-center justify-between gap-3 md:h-16">
+          <div className="flex min-w-0 items-center gap-3">
+            <Logo href="/dashboard" />
+            <span aria-hidden className="hidden h-5 w-px bg-line-strong sm:block" />
+            <span className="hidden items-center gap-1.5 text-[13px] font-medium text-muted sm:inline-flex">
+              <Sparkles className="size-3.5 text-accent" />
+              Studio
+            </span>
           </div>
-          <ThemeSwitch className="mx-2 self-start" />
-          <SignOutButton />
+          <div className="flex items-center gap-1 sm:gap-2">
+            <ThemeToggle className="size-9" />
+            <UserMenu user={user} />
+          </div>
         </div>
-      </aside>
+      </header>
 
-      <div className="flex min-w-0 flex-col">
-        {/* Top bar (mobile + tablet) */}
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-line bg-paper/85 px-4 backdrop-blur-md lg:hidden">
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger
-              className="grid size-10 place-items-center rounded-full text-ink-2 hover:bg-ink/5"
-              aria-label="Open navigation"
-            >
-              <MenuIcon className="size-5" />
-            </SheetTrigger>
-            <SheetContent side="left" title="Navigation" className="p-5">
-              <Logo href="/dashboard" />
-              <div className="mt-8 flex-1">
-                <NavLinks onNavigate={() => setOpen(false)} />
-              </div>
-              <div className="flex flex-col gap-3 border-t border-line pt-4">
-                <ThemeSwitch className="self-start" />
-                <SignOutButton />
-              </div>
-            </SheetContent>
-          </Sheet>
-          <Logo href="/dashboard" />
-          <UserMenu user={user} />
-        </header>
-
-        <main id="main" className="flex-1 pb-16">
-          {children}
-        </main>
-      </div>
+      <main id="main" className="flex-1 pb-20">
+        {children}
+      </main>
     </div>
   );
 }

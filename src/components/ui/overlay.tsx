@@ -37,7 +37,7 @@ export function DialogContent({
       <DialogPrimitive.Content
         className={cn(
           "fixed left-1/2 top-1/2 z-[100] max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto",
-          "rounded-2xl border border-line bg-surface p-6 shadow-overlay outline-none md:p-8",
+          "rounded-3xl border border-line bg-surface p-6 shadow-overlay outline-none md:p-8",
           "data-[state=open]:animate-dialog-in data-[state=closed]:animate-dialog-out",
           width,
           className,
@@ -61,7 +61,7 @@ export function DialogContent({
 export function DialogHeader({ title, description }: { title: React.ReactNode; description?: React.ReactNode }) {
   return (
     <div className="mb-6 pr-8">
-      <DialogPrimitive.Title className="serif text-2xl font-normal tracking-tight text-ink">{title}</DialogPrimitive.Title>
+      <DialogPrimitive.Title className="text-[22px] font-semibold tracking-[-0.025em] text-ink">{title}</DialogPrimitive.Title>
       {description ? (
         <DialogPrimitive.Description className="mt-2 text-sm leading-relaxed text-muted">{description}</DialogPrimitive.Description>
       ) : (
@@ -155,11 +155,11 @@ export function ConfirmDialog({
         <AlertPrimitive.Content
           className={cn(
             "fixed left-1/2 top-1/2 z-[100] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2",
-            "rounded-2xl border border-line bg-surface p-6 shadow-overlay outline-none md:p-7",
+            "rounded-3xl border border-line bg-surface p-6 shadow-overlay outline-none md:p-7",
             "data-[state=open]:animate-dialog-in data-[state=closed]:animate-dialog-out",
           )}
         >
-          <AlertPrimitive.Title className="serif text-xl text-ink">{title}</AlertPrimitive.Title>
+          <AlertPrimitive.Title className="text-[19px] font-semibold tracking-[-0.02em] text-ink">{title}</AlertPrimitive.Title>
           <AlertPrimitive.Description className={cn("mt-2 text-sm leading-relaxed text-muted", !description && "sr-only")}>
             {description ?? title}
           </AlertPrimitive.Description>
@@ -201,7 +201,7 @@ export const MenuTrigger = MenuPrimitive.Trigger;
 export const MenuGroup = MenuPrimitive.Group;
 
 const popClass =
-  "z-[110] min-w-48 overflow-hidden rounded-xl border border-line bg-surface p-1.5 shadow-overlay outline-none data-[state=open]:animate-pop-in data-[state=closed]:animate-pop-out";
+  "z-[110] min-w-48 overflow-hidden rounded-2xl border border-line bg-surface/90 p-1.5 shadow-overlay backdrop-blur-2xl backdrop-saturate-150 outline-none data-[state=open]:animate-pop-in data-[state=closed]:animate-pop-out";
 
 export function MenuContent({ className, sideOffset = 8, align = "end", ...props }: React.ComponentProps<typeof MenuPrimitive.Content>) {
   return (

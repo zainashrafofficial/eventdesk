@@ -96,7 +96,7 @@ export function LoginForm({ next, linkError, signedOut }: { next?: string; linkE
       </form>
       <p className="text-center text-sm text-muted">
         New here?{" "}
-        <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-medium text-ink underline-offset-4 hover:underline">
+        <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-medium text-accent underline-offset-4 hover:underline">
           Create an account
         </Link>
       </p>
@@ -113,11 +113,11 @@ export function SignupForm() {
 
   if (state?.ok && state.data?.needsConfirmation) {
     return (
-      <div className="flex flex-col items-start gap-4 rounded-2xl border border-line bg-surface p-6">
+      <div className="flex flex-col items-start gap-4">
         <span className="grid size-11 place-items-center rounded-full bg-accent-soft text-accent">
           <MailCheck className="size-5" />
         </span>
-        <h2 className="serif text-2xl text-ink">Check your inbox</h2>
+        <h2 className="text-[22px] font-semibold tracking-[-0.025em] text-ink">Check your inbox</h2>
         <p className="text-sm leading-relaxed text-muted">
           We sent a confirmation link to <strong className="text-ink">{state.data.email}</strong>. Open it to activate your
           account, then sign in.
@@ -138,7 +138,7 @@ export function SignupForm() {
             {...describe("full_name", fe.full_name)}
             {...bind("full_name")}
             autoComplete="name"
-            placeholder="Ayesha Khan"
+            placeholder="Alex Rivera"
             required
           />
         </Field>
@@ -175,7 +175,7 @@ export function SignupForm() {
       </form>
       <p className="text-center text-sm text-muted">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-ink underline-offset-4 hover:underline">
+        <Link href="/login" className="font-medium text-accent underline-offset-4 hover:underline">
           Sign in
         </Link>
       </p>

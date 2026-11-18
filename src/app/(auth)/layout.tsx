@@ -1,50 +1,36 @@
-import { CloudSun, FolderLock, ShieldCheck } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
+import Link from "next/link";
+import { LogoMark } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme";
+import { site } from "@/config/site";
 
-const POINTS = [
-  { icon: ShieldCheck, text: "Your events are private to your account, enforced in the database." },
-  { icon: FolderLock, text: "Files live in a private bucket and open through expiring links." },
-  { icon: CloudSun, text: "Every venue gets a live forecast and a map." },
-];
-
+/** Centered, Apple ID-style auth layout: mark, title, one calm card. */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[1fr_minmax(0,34rem)]">
-      <aside className="relative hidden overflow-hidden bg-ink p-12 text-paper lg:flex lg:flex-col lg:justify-between">
-        <div className="[&_a]:text-paper">
-          <Logo />
-        </div>
-        <div className="max-w-md">
-          <p className="display text-[3.4rem] text-paper">
-            Plan it.
-            <br />
-            Attach it.
-            <br />
-            <em className="text-[color:var(--marker)]">Check the sky.</em>
-          </p>
-          <ul className="mt-10 flex flex-col gap-4">
-            {POINTS.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-start gap-3 text-[15px] leading-relaxed text-paper/75">
-                <Icon className="mt-1 size-4 shrink-0 text-paper" />
-                {text}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <p className="eyebrow !text-paper/50">Next.js · Supabase · Open-Meteo</p>
-        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-accent/40 blur-3xl" />
-      </aside>
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-paper">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[-18rem] h-[34rem] w-[52rem] max-w-[160vw] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--accent)_14%,transparent),transparent)]"
+      />
+      <header className="relative flex items-center justify-between px-5 py-4 md:px-8">
+        <Link href="/" className="inline-flex items-center gap-2 rounded-lg text-ink transition-opacity hover:opacity-80" aria-label={`${site.name} home`}>
+          <LogoMark className="size-6" />
+          <span className="text-[15px] font-semibold tracking-[-0.02em]">{site.name}</span>
+        </Link>
+        <ThemeToggle className="size-9" />
+      </header>
 
-      <main id="main" className="flex min-h-dvh flex-col px-5 py-6 md:px-10">
-        <div className="flex items-center justify-between">
-          <div className="lg:invisible">
-            <Logo />
+      <main id="main" className="relative flex flex-1 flex-col items-center justify-center px-5 pb-16 pt-4">
+        <div className="w-full max-w-[26rem] animate-fade-up">
+          <div className="flex justify-center">
+            <LogoMark className="size-14 drop-shadow-[0_8px_24px_rgb(0_113_227/0.28)]" />
           </div>
-          <ThemeToggle />
+          {children}
         </div>
-        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-12">{children}</div>
       </main>
+
+      <footer className="relative pb-6 text-center text-xs text-faint">
+        {site.name} · {site.tagline}
+      </footer>
     </div>
   );
 }

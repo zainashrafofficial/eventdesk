@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
       // legitimately read the clock after a dynamic access (Cache Components).
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/purity": "warn",
+      // Competition rule: no `any` anywhere.
+      "@typescript-eslint/no-explicit-any": "error",
     },
   },
   // Override default ignores of eslint-config-next.

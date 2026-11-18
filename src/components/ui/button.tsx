@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 export const buttonVariants = cva(
   [
     "group/button relative inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap",
-    "rounded-full font-medium tracking-[-0.005em]",
+    "rounded-full font-medium tracking-[-0.01em]",
     "transition-[background-color,color,border-color,box-shadow,transform,opacity] duration-200 ease-out",
     "active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
@@ -16,20 +16,20 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-ink text-paper hover:bg-ink-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.08)]",
+        primary: "bg-accent text-accent-ink hover:bg-accent-hover shadow-[0_1px_2px_rgb(0_0_0/0.08),inset_0_1px_0_rgb(255_255_255/0.12)]",
         accent: "bg-accent text-accent-ink hover:bg-accent-hover",
-        secondary: "border border-line bg-surface text-ink hover:border-line-strong hover:bg-surface-2",
-        outline: "border border-ink/15 text-ink hover:border-ink/35 hover:bg-ink/[0.03]",
-        ghost: "text-ink-2 hover:bg-ink/[0.05] hover:text-ink",
+        secondary: "bg-surface-2 text-ink ring-1 ring-inset ring-line hover:bg-surface-3",
+        outline: "border border-line-strong bg-surface text-ink hover:border-ink/30 hover:bg-surface-2",
+        ghost: "text-ink-2 hover:bg-ink/[0.06] hover:text-ink",
         link: "h-auto rounded-none px-0 text-accent underline-offset-4 hover:underline active:scale-100",
-        danger: "bg-danger text-paper hover:bg-danger/90",
+        danger: "bg-danger text-white hover:bg-danger/90",
         "danger-ghost": "text-danger hover:bg-danger-soft",
       },
       size: {
         xs: "h-8 px-3 text-xs [&_svg]:size-3.5",
         sm: "h-9 px-4 text-[13px]",
-        md: "h-11 px-5 text-sm",
-        lg: "h-13 px-7 text-[15px]",
+        md: "h-11 px-5 text-[15px]",
+        lg: "h-12 px-7 text-[17px]",
         icon: "size-10",
         "icon-sm": "size-8 [&_svg]:size-3.5",
       },

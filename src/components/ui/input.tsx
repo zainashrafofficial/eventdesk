@@ -5,12 +5,12 @@ import { Eye, EyeOff, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const fieldControl = cn(
-  "w-full rounded-xl border border-line bg-surface px-3.5 text-base text-ink md:text-[15px]",
-  "shadow-[inset_0_1px_1px_rgb(var(--shadow-color)/0.03)] transition-[border-color,box-shadow,background-color] duration-200",
-  "placeholder:text-faint hover:border-line-strong",
-  "focus-visible:border-accent focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/15",
+  "w-full rounded-xl border border-transparent bg-surface-2 px-3.5 text-base text-ink md:text-[15px]",
+  "ring-1 ring-inset ring-line transition-[border-color,box-shadow,background-color] duration-200",
+  "placeholder:text-faint hover:ring-line-strong",
+  "focus-visible:border-accent focus-visible:bg-surface focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/20",
   "aria-invalid:border-danger aria-invalid:focus-visible:ring-danger/15",
-  "disabled:cursor-not-allowed disabled:opacity-50 read-only:bg-surface-2",
+  "disabled:cursor-not-allowed disabled:opacity-50 read-only:bg-surface-3/60",
 );
 
 export function Input({ className, type = "text", ...props }: React.ComponentProps<"input">) {

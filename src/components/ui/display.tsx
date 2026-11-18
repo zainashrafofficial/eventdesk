@@ -7,18 +7,18 @@ import { cn, initials } from "@/lib/utils";
 /* ------------------------------------------------------------------ */
 
 export const badgeVariants = cva(
-  "inline-flex h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs font-medium [&_svg]:size-3",
+  "inline-flex h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs font-medium tracking-[-0.005em] [&_svg]:size-3",
   {
     variants: {
       tone: {
-        neutral: "bg-ink/[0.06] text-ink-2",
+        neutral: "bg-surface-2 text-ink-2 ring-1 ring-inset ring-line",
         outline: "border border-line text-ink-2",
         accent: "bg-accent-soft text-accent",
         success: "bg-success-soft text-success",
         warning: "bg-warning-soft text-warning",
         danger: "bg-danger-soft text-danger",
         ink: "bg-ink text-paper",
-        marker: "bg-marker text-ink",
+        marker: "bg-marker text-accent",
       },
     },
     defaultVariants: { tone: "neutral" },
@@ -43,7 +43,7 @@ export function Badge({
 /*  Avatar                                                             */
 /* ------------------------------------------------------------------ */
 
-const AVATAR_TINTS = ["#2b44ff", "#141312", "#c8553d", "#2f4a3a", "#8a6d1f", "#5b4bb7"];
+const AVATAR_TINTS = ["#0071e3", "#5e5ce6", "#30b0c7", "#34a853", "#ff9500", "#af52de"];
 
 export function Avatar({
   src,
@@ -165,7 +165,7 @@ export function ProgressRing({
 /* ------------------------------------------------------------------ */
 
 export function Card({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("rounded-2xl border border-line bg-surface", className)} {...props} />;
+  return <div className={cn("rounded-3xl border border-line bg-surface shadow-soft", className)} {...props} />;
 }
 
 export function CardHeader({
@@ -182,7 +182,7 @@ export function CardHeader({
   return (
     <div className={cn("flex items-start justify-between gap-4 border-b border-line px-5 py-4 md:px-6", className)}>
       <div className="min-w-0">
-        <h3 className="text-[15px] font-semibold text-ink">{title}</h3>
+        <h3 className="text-[17px] font-semibold tracking-[-0.02em] text-ink">{title}</h3>
         {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
       </div>
       {action}
@@ -236,7 +236,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-2xl border border-dashed border-line-strong px-6 py-14 text-center",
+        "flex flex-col items-center justify-center rounded-3xl border border-dashed border-line-strong bg-surface-2/40 px-6 py-14 text-center",
         className,
       )}
     >
@@ -245,7 +245,7 @@ export function EmptyState({
           {icon}
         </div>
       )}
-      <h3 className="serif text-xl text-ink">{title}</h3>
+      <h3 className="text-[19px] font-semibold tracking-[-0.02em] text-ink">{title}</h3>
       {description && <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted">{description}</p>}
       {action && <div className="mt-6">{action}</div>}
     </div>
@@ -270,12 +270,12 @@ export function Stat({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-2xl border border-line bg-surface p-5", className)}>
+    <div className={cn("rounded-3xl border border-line bg-surface p-5 shadow-soft", className)}>
       <div className="flex items-center justify-between gap-3">
         <span className="eyebrow">{label}</span>
         {icon && <span className="text-muted [&_svg]:size-4">{icon}</span>}
       </div>
-      <div className="mt-4 serif text-[2.1rem] leading-none tracking-tight text-ink tabular">{value}</div>
+      <div className="mt-4 text-[2rem] font-semibold leading-none tracking-[-0.035em] text-ink tabular">{value}</div>
       {hint && <div className="mt-2 text-[13px] text-muted">{hint}</div>}
     </div>
   );

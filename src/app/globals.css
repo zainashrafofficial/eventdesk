@@ -3,67 +3,67 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ------------------------------------------------------------------ */
-/*  EventDesk — "Editorial Ink" design tokens                          */
-/*  Warm paper, near-black ink, one cobalt accent.                     */
+/*  Cadence: Apple-grade design tokens                                  */
+/*  Neutral greys, near-black ink, one system blue accent.              */
 /* ------------------------------------------------------------------ */
 
 :root {
-  --paper: #f5f2ec;
-  --surface: #fbfaf7;
-  --surface-2: #efebe3;
-  --surface-3: #e6e1d7;
-  --ink: #141312;
-  --ink-2: #3a3732;
-  --muted: #6a655c;
-  --faint: #9a948a;
-  --line: #e2dcd1;
-  --line-strong: #cec6b8;
+  --paper: #f5f5f7;
+  --surface: #ffffff;
+  --surface-2: #f5f5f7;
+  --surface-3: #e8e8ed;
+  --ink: #1d1d1f;
+  --ink-2: #424245;
+  --muted: #6e6e73;
+  --faint: #a1a1a6;
+  --line: #e3e3e8;
+  --line-strong: #d2d2d7;
 
-  --accent: #2b44ff;
-  --accent-hover: #1d33e0;
-  --accent-soft: #e4e8ff;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-soft: #e8f2fd;
   --accent-ink: #ffffff;
 
-  --marker: #f1e07a;
+  --marker: #d7e8fc;
 
-  --success: #1e7a4c;
-  --success-soft: #e0f0e6;
-  --warning: #9a5806;
-  --warning-soft: #f9edd6;
-  --danger: #c23a1e;
-  --danger-soft: #fae3dc;
+  --success: #1d8a3a;
+  --success-soft: #e6f6ea;
+  --warning: #b25000;
+  --warning-soft: #fff2e0;
+  --danger: #d70015;
+  --danger-soft: #ffeceb;
 
-  --shadow-color: 30 25 15;
-  --scrim: rgb(20 19 18 / 0.48);
+  --shadow-color: 0 0 0;
+  --scrim: rgb(0 0 0 / 0.32);
 
   color-scheme: light;
 }
 
 .dark {
-  --paper: #11110f;
-  --surface: #181815;
-  --surface-2: #201f1c;
-  --surface-3: #2a2925;
-  --ink: #efebe3;
-  --ink-2: #d3cec4;
-  --muted: #a39e94;
-  --faint: #6f6a62;
-  --line: #2a2926;
-  --line-strong: #3b3935;
+  --paper: #000000;
+  --surface: #161617;
+  --surface-2: #1d1d1f;
+  --surface-3: #2c2c2e;
+  --ink: #f5f5f7;
+  --ink-2: #d2d2d7;
+  --muted: #a1a1a6;
+  --faint: #6e6e73;
+  --line: #2a2a2d;
+  --line-strong: #3a3a3d;
 
-  --accent: #8c9bff;
-  --accent-hover: #a6b2ff;
-  --accent-soft: #1b2047;
-  --accent-ink: #0b0d1f;
+  --accent: #2997ff;
+  --accent-hover: #47a6ff;
+  --accent-soft: #0b2540;
+  --accent-ink: #ffffff;
 
-  --marker: #6b5f1f;
+  --marker: #0b2540;
 
-  --success: #5cc48d;
-  --success-soft: #13291d;
-  --warning: #e3a551;
-  --warning-soft: #2e2211;
-  --danger: #f2816a;
-  --danger-soft: #331813;
+  --success: #30d158;
+  --success-soft: #0f2a17;
+  --warning: #ff9f0a;
+  --warning-soft: #2e1f08;
+  --danger: #ff453a;
+  --danger-soft: #331210;
 
   --shadow-color: 0 0 0;
   --scrim: rgb(0 0 0 / 0.6);
@@ -94,17 +94,17 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
 
-  --font-sans: var(--font-schibsted), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "SF Pro Text", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-inter), -apple-system, BlinkMacSystemFont, "SF Pro Display", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
 
-  --shadow-soft: 0 1px 2px rgb(var(--shadow-color) / 0.04), 0 4px 16px -4px rgb(var(--shadow-color) / 0.08);
-  --shadow-lift: 0 2px 4px rgb(var(--shadow-color) / 0.04), 0 18px 40px -12px rgb(var(--shadow-color) / 0.18);
-  --shadow-overlay: 0 4px 8px rgb(var(--shadow-color) / 0.06), 0 32px 64px -16px rgb(var(--shadow-color) / 0.28);
+  --shadow-soft: 0 0 0 0.5px rgb(var(--shadow-color) / 0.03), 0 1px 2px rgb(var(--shadow-color) / 0.04), 0 4px 12px -2px rgb(var(--shadow-color) / 0.05);
+  --shadow-lift: 0 0 0 0.5px rgb(var(--shadow-color) / 0.04), 0 2px 6px rgb(var(--shadow-color) / 0.04), 0 12px 32px -8px rgb(var(--shadow-color) / 0.1), 0 32px 64px -24px rgb(var(--shadow-color) / 0.12);
+  --shadow-overlay: 0 0 0 0.5px rgb(var(--shadow-color) / 0.06), 0 8px 16px rgb(var(--shadow-color) / 0.06), 0 24px 48px -12px rgb(var(--shadow-color) / 0.18), 0 48px 96px -32px rgb(var(--shadow-color) / 0.22);
 
   --animate-marquee: marquee var(--marquee-duration, 48s) linear infinite;
   --animate-shimmer: shimmer 1.8s var(--ease-in-out-quart) infinite;
@@ -135,7 +135,9 @@
   --animate-sheet-out-left: sheet-out-left 220ms ease-in forwards;
   --animate-pop-in: pop-in 200ms var(--ease-out-expo);
   --animate-pop-out: pop-out 120ms ease-in forwards;
-  --animate-fade-up: fade-up 600ms var(--ease-out-expo) both;
+  --animate-fade-up: fade-up 700ms var(--ease-out-expo) both;
+  --animate-fade-in: fade-in 600ms ease-out both;
+  --animate-float: float 6s ease-in-out infinite;
 
   @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
   @keyframes overlay-out { from { opacity: 1; } to { opacity: 0; } }
@@ -158,8 +160,13 @@
   }
   @keyframes pop-out { from { opacity: 1; } to { opacity: 0; transform: scale(0.98); } }
   @keyframes fade-up {
-    from { opacity: 0; transform: translateY(12px); }
+    from { opacity: 0; transform: translateY(16px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
   }
 }
 
@@ -187,8 +194,9 @@
     color: var(--ink);
     font-family: var(--font-sans);
     font-size: 1rem;
-    line-height: 1.6;
-    font-feature-settings: "ss01", "cv11";
+    line-height: 1.55;
+    letter-spacing: -0.011em;
+    font-feature-settings: "cv11", "ss01", "ss03";
   }
 
   h1, h2, h3, h4 {
@@ -200,8 +208,8 @@
   }
 
   ::selection {
-    background: var(--accent);
-    color: var(--accent-ink);
+    background: color-mix(in oklab, var(--accent) 28%, transparent);
+    color: var(--ink);
   }
 
   :focus-visible {
@@ -270,28 +278,65 @@
   margin-inline: auto;
 }
 
-/* Small uppercase mono label used for section numbers, meta, kickers */
+/* Small kicker label above headings (Apple style: sentence case, semibold) */
 @utility eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
   line-height: 1rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--muted);
 }
 
-/* Big editorial serif display */
+/* Big confident display headline */
 @utility display {
   font-family: var(--font-serif);
-  font-weight: 380;
-  letter-spacing: -0.025em;
-  line-height: 0.98;
-  font-optical-sizing: auto;
+  font-weight: 680;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  font-feature-settings: "cv11", "ss01", "ss03";
 }
 
 @utility serif {
   font-family: var(--font-serif);
-  font-optical-sizing: auto;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+}
+
+/* Frosted glass surface for sticky bars and floating panels */
+@utility glass {
+  background-color: color-mix(in oklab, var(--surface) 88%, transparent);
+  backdrop-filter: saturate(180%) blur(40px);
+  -webkit-backdrop-filter: saturate(180%) blur(40px);
+}
+
+/* Subtle ink-to-muted gradient text for hero headlines */
+@utility text-gradient {
+  background-image: linear-gradient(180deg, var(--ink) 30%, color-mix(in oklab, var(--ink) 55%, var(--muted)) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Blue-to-indigo accent gradient text, used sparingly */
+@utility text-gradient-accent {
+  background-image: linear-gradient(90deg, var(--accent) 0%, #5e5ce6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Half-pixel border (falls back to 1px) */
+@utility hairline {
+  border-width: 0.5px;
+  border-style: solid;
+  border-color: var(--line-strong);
+  @media (max-resolution: 1dppx) {
+    border-width: 1px;
+    border-color: var(--line);
+  }
 }
 
 /* Highlighter-pen underline for emphasised words */
@@ -376,8 +421,8 @@
   & h1, & h2, & h3, & h4 {
     color: var(--ink);
     font-family: var(--font-serif);
-    font-weight: 450;
-    letter-spacing: -0.015em;
+    font-weight: 650;
+    letter-spacing: -0.022em;
     line-height: 1.2;
     margin-top: 2em;
   }
@@ -395,9 +440,7 @@
   & blockquote {
     border-left: 2px solid var(--accent);
     padding-left: 1.1em;
-    font-family: var(--font-serif);
-    font-size: 1.2em;
-    font-style: italic;
+    font-size: 1.1em;
     color: var(--ink);
   }
   & code {

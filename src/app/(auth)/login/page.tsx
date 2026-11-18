@@ -12,12 +12,13 @@ export default async function LoginPage({
   const sp = await searchParams;
   return (
     <>
-      <div className="mb-8">
-        <span className="eyebrow">Welcome back</span>
-        <h1 className="display mt-3 text-[2.75rem] text-ink">Sign in</h1>
-        <p className="mt-2 text-[15px] text-muted">Pick up where you left off with your events.</p>
+      <div className="mb-8 mt-6 text-center">
+        <h1 className="display text-[2.25rem] text-ink sm:text-[2.5rem]">Sign in to Cadence</h1>
+        <p className="mt-2 text-[15px] text-muted">Your captions and schedule are right where you left them.</p>
       </div>
-      <LoginForm next={sp.next ? safeNext(sp.next) : undefined} linkError={sp.error} signedOut={sp.signedOut === "1"} />
+      <div className="rounded-3xl border border-line bg-surface p-6 shadow-lift sm:p-8">
+        <LoginForm next={sp.next ? safeNext(sp.next) : undefined} linkError={sp.error} signedOut={sp.signedOut === "1"} />
+      </div>
     </>
   );
 }

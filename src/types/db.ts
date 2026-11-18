@@ -1,37 +1,100 @@
-import type { EventCategory, EventStatus } from "@/config/events";
+/**
+ * Shared domain types for Cadence. Mirrors supabase/migrations/20261118000002_cadence.sql.
+ * Every module imports from here; never redefine these shapes locally. No `any` anywhere.
+ */
 
-/** Row shape of public.events (see supabase/migrations). */
-export type EventRow = {
+export const PLATFORMS = ["instagram", "x", "linkedin", "facebook", "tiktok"] as const;
+export type Platform = (typeof PLATFORMS)[number];
+
+export const PLATFORM_LABELS: Record<Platform, string> = {
+  instagram: "Instagram",
+  x: "X",
+  linkedin: "LinkedIn",
+  facebook: "Facebook",
+  tiktok: "TikTok",
+};
+
+/** Recommended caption length per platform (X hard limit is 280). */
+export const PLATFORM_LIMITS: Record<Platform, number> = {
+  instagram: 2200,
+  x: 280,
+  linkedin: 3000,
+  facebook: 2200,
+  tiktok: 2200,
+};
+
+export const TONES = ["professional", "playful", "inspirational", "witty", "bold", "friendly"] as const;
+export type Tone = (typeof TONES)[number];
+
+export const POST_STATUSES = ["draft", "scheduled", "published"] as const;
+export type PostStatus = (typeof POST_STATUSES)[number];
+
+export type PostRow = {
   id: string;
   user_id: string;
-  title: string;
-  description: string | null;
-  category: EventCategory;
-  status: EventStatus;
-  starts_at: string;
-  capacity: number | null;
-  location_name: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  cover_path: string | null;
+  prompt: string | null;
+  caption: string;
+  hashtags: string[];
+  platform: Platform;
+  tone: string | null;
+  notes: string | null;
+  status: PostStatus;
+  scheduled_at: string | null;
+  notify: boolean;
+  confirmation_sent_at: string | null;
+  reminder_sent_at: string | null;
+  drive_file_id: string | null;
+  drive_synced_at: string | null;
+  drive_sync_error: string | null;
   created_at: string;
   updated_at: string;
 };
 
-/** Row shape of public.attachments. */
-export type AttachmentRow = {
-  id: string;
-  event_id: string;
+export type NotificationSettings = {
   user_id: string;
-  file_path: string;
-  file_name: string;
-  mime_type: string;
-  size_bytes: number;
+  email: string;
+  enabled: boolean;
+  notify_on_schedule: boolean;
+  remind_before_minutes: number;
+  include_caption: boolean;
+  subject_prefix: string;
+  timezone: string;
+  updated_at: string;
+};
+
+export type NotificationLogRow = {
+  id: string;
+  user_id: string;
+  post_id: string | null;
+  kind: "scheduled" | "reminder" | "test";
+  sent_to: string;
+  status: "sent" | "failed";
+  error: string | null;
   created_at: string;
 };
 
-/** An event plus a short-lived signed URL for its cover image. */
-export type EventWithCover = EventRow & { cover_url: string | null };
+/** Safe, client-visible view of a Drive connection (the refresh token is never selected). */
+export type DriveStatus = {
+  connected: boolean;
+  configured: boolean; // GOOGLE_CLIENT_ID/SECRET present on the server
+  googleEmail: string | null;
+  folderId: string | null;
+  folderUrl: string | null;
+};
 
-/** An attachment plus a short-lived signed URL. */
-export type AttachmentWithUrl = AttachmentRow & { url: string | null };
+/** One AI-generated caption option. */
+export type CaptionOption = {
+  caption: string;
+  hashtags: string[]; // without the leading '#'
+};
+
+export type GenerateRequest = {
+  prompt: string;
+  platform: Platform;
+  tone: Tone;
+  count: 2 | 3;
+};
+
+export type GenerateResponse =
+  | { ok: true; options: CaptionOption[]; model: string; remaining: number }
+  | { ok: false; error: string; retryAfterSeconds?: number };

@@ -1,169 +1,250 @@
-# EventDesk
+# Cadence
 
-**A full-stack event planner: secure accounts, private event records, cloud file storage, and live weather + maps for every venue.**
+**An AI social media studio: Gemini writes the captions, you pick one and a time, Cadence saves it, syncs the draft to your Google Drive, and emails you before it goes out.**
 
 Built for the VSpark 2026 Web Development Competition (COMSATS University Islamabad, Vehari Campus).
 
 | | |
 | --- | --- |
 | **Live URL** | **[eventdesk-self.vercel.app](https://eventdesk-self.vercel.app)** (health check: [/api/health](https://eventdesk-self.vercel.app/api/health)) |
-| **Demo account** | Sign up with any email, or use `demo.mwkvkvu1@example.com` / `Demo-pass-2026` (already has sample events and files) |
+| **Demo account** | Sign up with any email (email confirmation is off), then open the studio at `/dashboard` |
 | **Repository** | [github.com/zainashrafofficial/eventdesk](https://github.com/zainashrafofficial/eventdesk) |
-| **Stack** | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Supabase (Postgres, Auth, Storage) · Tailwind CSS v4 · Zod · Open-Meteo API · OpenStreetMap |
+| **Stack** | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript strict · Supabase (Postgres, Auth, RLS, pg_cron) · Tailwind CSS v4 · Zod · Google Gemini API · Google Drive API (OAuth 2.0) · Resend |
 
 ---
 
 ## Contents
 
-1. [Features (mapped to the judging rubric)](#1-features-mapped-to-the-judging-rubric)
-2. [Architecture overview](#2-architecture-overview)
-3. [Environment variables and API keys](#3-environment-variables-and-api-keys)
-4. [Setup guide (step by step)](#4-setup-guide-step-by-step)
-5. [Deployment (Vercel)](#5-deployment-vercel)
-6. [Screenshots: each pipeline, in order](#6-screenshots-each-pipeline-in-order)
-7. [Testing](#7-testing)
-8. [Security](#8-security)
-9. [Project structure](#9-project-structure)
+1. [The brief, and how Cadence answers it](#1-the-brief-and-how-cadence-answers-it)
+2. [Features mapped to the judging rubric](#2-features-mapped-to-the-judging-rubric)
+3. [Architecture overview](#3-architecture-overview)
+4. [Security and rate limiting](#4-security-and-rate-limiting)
+5. [Environment variables and API keys](#5-environment-variables-and-api-keys)
+6. [Setup guide (step by step)](#6-setup-guide-step-by-step)
+7. [Deployment (Vercel)](#7-deployment-vercel)
+8. [Screenshots: each pipeline, in order](#8-screenshots-each-pipeline-in-order)
+9. [Testing](#9-testing)
+10. [Project structure](#10-project-structure)
 
 ---
 
-## 1. Features (mapped to the judging rubric)
+## 1. The brief, and how Cadence answers it
 
-| Rubric criterion | What EventDesk does | Where in the code |
+| # | Brief requirement | Cadence |
 | --- | --- | --- |
-| **UI/UX & Responsiveness** | Clean editorial design, light/dark theme, mobile drawer navigation, skeleton loaders, toasts, empty states, accessible forms (labels, ARIA errors, keyboard support) | `src/components/**`, `src/app/globals.css` |
-| **Authentication Flow** | Email sign-up (name, email, password + confirm), sign-in, sign-out, cookie sessions refreshed on every request, protected pages, Server Actions and API routes, `?next=` return after login | `src/lib/actions/auth.ts`, `src/proxy.ts`, `src/lib/auth/dal.ts` |
-| **Database & CRUD** | Events: **Create** (form), **Read** (list with search, filters, sort, pagination + detail page), **Update** (edit form), **Delete** (confirm dialog). Attachments: create, read, delete. Dashboard stats via count queries | `src/lib/data/events.ts`, `src/lib/actions/events.ts`, `supabase/migrations/` |
-| **Cloud Storage** | Cover images and attachments (images, PDF, TXT, DOCX, 10 MB max) uploaded to a **private** Supabase Storage bucket, rendered back through **expiring signed URLs**; files removed from storage when replaced or deleted | `src/lib/storage.ts`, `src/components/events/attachments-panel.tsx`, `src/lib/actions/attachments.ts` |
-| **External API** | **Open-Meteo Geocoding API** (live venue search) and **Open-Meteo Forecast API** (current weather + 16-day forecast, event-day highlight), plus an **OpenStreetMap** embed and Google Maps directions link. Timeouts, one retry, typed errors, loading / error-with-retry / empty states | `src/lib/services/open-meteo.ts`, `src/app/api/*`, `src/components/events/weather-panel.tsx`, `location-search.tsx` |
-| **Deployment** | Vercel-ready, health endpoint at `/api/health`, production build verified | `next.config.ts`, [section 5](#5-deployment-vercel) |
-| **Code Quality & Architecture** | Feature-based folders, a single Data Access Layer for sessions, shared Zod schemas validate on **client and server**, DB `CHECK` constraints as the last line, error boundaries, typed results | [section 9](#9-project-structure) |
-| **Documentation** | This README, `.env.example`, setup steps, screenshots | you're reading it |
+| 1 | AI generates caption options with hashtags | Describe the post, pick a platform (Instagram, X, LinkedIn, Facebook, TikTok), tone and count → **Gemini** returns **2–3 options** as validated structured JSON (caption + hashtags, within the platform's character limit) |
+| 2 | Pick one, pick a time, save, sync to cloud | Select an option, edit it if you like, choose date/time + task notes → **Save draft** or **Schedule post**. The post is written to Postgres and synced as a Google Doc into a **"Cadence Drafts"** folder in the user's own **Google Drive** |
+| 3 | Feed of saved / scheduled posts with edit + delete | The studio feed lists every post (scheduled soonest first, drafts last) with platform, time, Drive and email status; **Edit** changes caption/hashtags/time (and re-syncs the Doc); **Delete** asks for confirmation and removes the Doc too |
+| 4 | Automated email per scheduled post + customisable notifications | Scheduling sends an **immediate confirmation email** (Resend); a **Supabase pg_cron job** runs every minute and sends a **reminder N minutes before** each post. Users set the address, on/off, reminder lead time, subject prefix, whether to include the caption, and time zone. Every email is logged in an activity panel |
+| 5 | Deployed | Live on Vercel (link above), health endpoint, env-driven configuration |
+
+## 2. Features mapped to the judging rubric
+
+| Rubric criterion | What Cadence does | Where in the code |
+| --- | --- | --- |
+| **UI/UX & Responsiveness** | One calm, Apple-style studio page: generator → options → composer → feed, side column for Drive / notifications / email activity. Light + dark, glass surfaces, skeletons, toasts, empty states, inline validation, keyboard + screen-reader friendly, works from 390 px phones up | `src/components/studio/*`, `src/components/ui/*`, `src/app/globals.css` |
+| **Authentication** | Email sign-up (name, email, password + confirm), sign-in, sign-out, HTTP-only cookie sessions refreshed on every request, `?next=` return after login, protected pages, Server Actions and Route Handlers | `src/lib/actions/auth.ts`, `src/proxy.ts`, `src/lib/auth/dal.ts` |
+| **Database & CRUD** | Posts: **Create** (draft or scheduled), **Read** (feed + stats), **Update** (edit dialog), **Delete** (confirm dialog). Notification settings: upsert. Email log: read. Postgres `CHECK` constraints, triggers, indexes, RLS on every table | `src/lib/data/posts.ts`, `src/lib/actions/posts.ts`, `src/lib/actions/notifications.ts`, `supabase/migrations/` |
+| **Cloud Storage** | **Google Drive**: OAuth 2.0 connect (scope `drive.file`, so Cadence only sees files it created), each post becomes a Google Doc in "Cadence Drafts", updated on edit, removed on delete, manual "Sync now" / "Sync all", disconnect | `src/lib/services/google-drive.ts`, `src/app/api/drive/*`, `src/lib/actions/drive.ts`, `src/components/studio/drive-status.tsx` |
+| **External APIs** | **Google Gemini** (`gemini-2.5-flash`, structured JSON output + zod validation), **Google Drive API** (OAuth + Docs), **Resend** (transactional email). Timeouts, typed errors, rate limits, and every one degrades gracefully when its key is missing | `src/lib/services/gemini.ts`, `src/app/api/generate/route.ts`, `src/lib/services/email.ts`, `src/app/api/cron/notify/route.ts` |
+| **Deployment** | Vercel, `/api/health`, all secrets in Vercel env vars, pg_cron calls the deployed URL | [section 7](#7-deployment-vercel) |
+| **Code Quality & Architecture** | Layered: proxy → Data Access Layer → data (reads) / actions (writes) / services (3rd-party) → validation. One zod schema per form used on **client and server**. TypeScript strict with **no `any`**. Typed `ActionResult` everywhere | [section 10](#10-project-structure) |
+| **Documentation** | This README, `.env.example` (every variable commented), setup + Google Cloud steps, architecture + ER diagrams, screenshots, `docs/DEFENSE.md` | you're reading it |
+| **Demo** | Scripted 3-minute walk-through + judge Q&A in [`docs/DEFENSE.md`](docs/DEFENSE.md); `npm run test:e2e` replays the whole flow and regenerates the screenshots | `docs/DEFENSE.md`, `scripts/screenshots.mjs` |
 
 ---
 
-## 2. Architecture overview
+## 3. Architecture overview
 
 ```mermaid
 flowchart LR
-  B["Browser<br/>React 19 client components"] -->|"Server Actions<br/>(create / update / delete)"| N
-  B -->|"fetch /api/weather, /api/geocode"| N
-  B -->|"direct upload<br/>(user's session, RLS-checked)"| S[("Supabase Storage<br/>private bucket")]
-  subgraph N["Next.js 16 on Vercel"]
-    P["proxy.ts<br/>session refresh + redirects"] --> R["Server Components<br/>pages + data layer"]
-    R --> D["lib/auth/dal.ts<br/>requireUser()"]
-    A["Route Handlers<br/>/api/weather /api/geocode"] --> D
-  end
-  R -->|"user-scoped client"| DB[("Supabase Postgres<br/>events, attachments<br/>Row Level Security")]
-  R -->|"signed URLs"| S
-  A -->|"HTTPS, 8s timeout, 1 retry"| OM["Open-Meteo<br/>Geocoding + Forecast"]
-  B -.->|"iframe"| OSM["OpenStreetMap"]
+  B["Browser<br/>React 19 studio (client components)"] -->|"Server Actions<br/>create / update / delete post,<br/>settings, test email, Drive sync"| N
+  B -->|"POST /api/generate"| N
+  B -->|"GET /api/drive/connect"| N
   B -->|"sign up / sign in"| AU["Supabase Auth"]
+  subgraph N["Next.js 16 on Vercel"]
+    P["proxy.ts<br/>session refresh + redirects"] --> R["Server Components<br/>/dashboard studio"]
+    R --> D["lib/auth/dal.ts<br/>requireUser() / getCurrentUser()"]
+    A["Route Handlers<br/>/api/generate · /api/drive/* · /api/cron/notify"] --> D
+    S["lib/services<br/>gemini · google-drive · email"]
+    A --> S
+    R --> S
+  end
+  R -->|"user-scoped client<br/>(RLS applies)"| DB[("Supabase Postgres<br/>posts · notification_settings<br/>notification_log · drive_connections<br/>rate_limits · RLS on every table")]
+  S -->|"structured JSON output"| G["Google Gemini API"]
+  S -->|"OAuth 2.0 + Drive/Docs API"| GD["Google Drive<br/>'Cadence Drafts' folder"]
+  S -->|"REST"| RS["Resend<br/>confirmation + reminder emails"]
+  S -.->|"secret key, server only:<br/>tokens, cron, email log"| DB
+  CR["Supabase pg_cron<br/>every minute"] -->|"GET /api/cron/notify<br/>Bearer CRON_SECRET"| A
 ```
 
 **Request lifecycle**
 
-1. Every request passes through `src/proxy.ts` (Next.js 16's replacement for middleware). It refreshes the Supabase session cookie and redirects signed-out users away from `/dashboard/**` (and signed-in users away from `/login`, `/signup`).
-2. Pages are **Server Components**. They call the data layer (`src/lib/data/events.ts`), which calls `requireUser()` and queries Postgres with the **user-scoped** Supabase client, so Row Level Security applies to every query.
-3. Mutations are **Server Actions** (`src/lib/actions/*`). Each one re-checks the session, re-validates input with the same Zod schema the form used, writes, and calls `revalidatePath()` so the UI refreshes.
-4. File bytes go **directly from the browser to Supabase Storage** (no 4.5 MB serverless body limit). Storage policies only allow writing inside the user's own folder; a Server Action then records the file's metadata.
-5. The weather and geocoding APIs are called **server-side** through our own protected route handlers, so the client never talks to third parties directly and responses are cached (15 min forecast, 24 h geocoding).
+1. Every request passes through `src/proxy.ts` (Next.js 16's replacement for middleware). It refreshes the Supabase session cookie, redirects signed-out users away from `/dashboard` to `/login?next=...`, and signed-in users away from `/login` and `/signup`.
+2. `/dashboard` is a **Server Component**. It calls `getStudioData()` (`src/lib/data/posts.ts`), which calls `requireUser()` and loads posts, Drive status, notification settings, the email log and stats with the **user-scoped** Supabase client, so Row Level Security applies to every query.
+3. **Generate**: the client posts `{ prompt, platform, tone, count }` to `/api/generate`. The route checks the session, validates with zod, applies the rate limit, and calls Gemini with a JSON response schema. The output is parsed and validated again (lengths, hashtag count, platform limit) before it reaches the browser.
+4. **Save / schedule** is a **Server Action** (`createPost`): validate → rate limit → insert → sync to Google Drive (if connected) → send the confirmation email (if scheduled) → `revalidatePath("/dashboard")`. Drive or email failures never lose the post: they are recorded on the row (`drive_sync_error`, `notification_log`) and shown in the UI.
+5. **Reminders**: Supabase **pg_cron** calls `GET /api/cron/notify` every minute with `Authorization: Bearer <CRON_SECRET>`. The handler compares the secret in constant time, finds scheduled posts whose reminder time has arrived (`scheduled_at - remind_before_minutes <= now()` and `reminder_sent_at is null`), emails them, and stamps `reminder_sent_at` so each reminder goes out exactly once.
 
 **Data model**
 
 ```mermaid
 erDiagram
-  AUTH_USERS ||--o{ EVENTS : owns
-  AUTH_USERS ||--o{ ATTACHMENTS : owns
-  EVENTS ||--o{ ATTACHMENTS : has
-  EVENTS {
+  AUTH_USERS ||--o{ POSTS : owns
+  AUTH_USERS ||--o| NOTIFICATION_SETTINGS : has
+  AUTH_USERS ||--o{ NOTIFICATION_LOG : receives
+  AUTH_USERS ||--o| DRIVE_CONNECTIONS : links
+  POSTS ||--o{ NOTIFICATION_LOG : "emails about"
+  POSTS {
     uuid id PK
-    uuid user_id FK
-    text title "3-120 chars"
-    text description "max 2000"
-    text category "meetup|workshop|conference|social|sports|other"
-    text status "planned|confirmed|completed|cancelled"
-    timestamptz starts_at
-    int capacity "1-100000, nullable"
-    text location_name
-    float latitude "nullable, paired with longitude"
-    float longitude
-    text cover_path "storage key"
-    timestamptz created_at
+    uuid user_id FK "default auth.uid()"
+    text prompt "max 500"
+    text caption "1-2200 chars"
+    text_arr hashtags "max 30"
+    text platform "instagram|x|linkedin|facebook|tiktok"
+    text tone
+    text notes "task details, max 1000"
+    text status "draft|scheduled|published"
+    timestamptz scheduled_at "required when scheduled"
+    bool notify
+    timestamptz confirmation_sent_at
+    timestamptz reminder_sent_at
+    text drive_file_id
+    timestamptz drive_synced_at
+    text drive_sync_error
     timestamptz updated_at "trigger-maintained"
   }
-  ATTACHMENTS {
+  NOTIFICATION_SETTINGS {
+    uuid user_id PK
+    text email
+    bool enabled
+    bool notify_on_schedule
+    int remind_before_minutes "0-1440"
+    bool include_caption
+    text subject_prefix
+    text timezone
+  }
+  NOTIFICATION_LOG {
     uuid id PK
-    uuid event_id FK "on delete cascade"
     uuid user_id FK
-    text file_path "unique storage key"
-    text file_name
-    text mime_type
-    bigint size_bytes "max 10 MB"
+    uuid post_id FK "on delete set null"
+    text kind "scheduled|reminder|test"
+    text sent_to
+    text status "sent|failed"
+    text error
+  }
+  DRIVE_CONNECTIONS {
+    uuid user_id PK
+    text refresh_token "never readable by clients"
+    text google_email
+    text folder_id
+    timestamptz connected_at
+  }
+  RATE_LIMITS {
+    text key PK "bucket:user_id"
+    timestamptz window_start
+    int hits
   }
 ```
 
-Storage layout (bucket `event-files`, private): `{user_id}/covers/{file}` and `{user_id}/{event_id}/{file}`.
+---
+
+## 4. Security and rate limiting
+
+- **Three layers of route protection**: `proxy.ts` redirects; every page / Server Action / Route Handler calls `requireUser()` / `getCurrentUser()` (JWT verified with `getClaims()`); Postgres **Row Level Security** enforces ownership even if the app layer were bypassed.
+- **RLS on every table**: `posts` and `notification_settings` are owner-only (`user_id = auth.uid()` for using *and* with check); `notification_log` is owner read-only (only the server writes it); `drive_connections` is owner read/delete; `rate_limits` has **no grants at all**.
+- **OAuth refresh tokens are hidden at the column level**: clients are granted `select (user_id, google_email, folder_id, connected_at)` only, so `select refresh_token` (or `select *`) from the browser fails with *permission denied*. Tokens are written and read only by the server with the secret key (`src/lib/supabase/admin.ts`, `server-only`).
+- **CSRF protection on OAuth**: `/api/drive/connect` sets a random `state` in an HTTP-only cookie; `/api/drive/callback` rejects the response unless it matches. Scope is `drive.file`: Cadence can only touch files it created.
+- **Rate limiter bound to the caller**: `check_rate_limit()` is a `SECURITY DEFINER` function that builds its key from `auth.uid()` inside the database, so a user can't spend or reset someone else's quota; anonymous callers can't execute it. It's a fixed window shared by every serverless instance (no in-memory state).
+- **Cron endpoint**: requires `Authorization: Bearer <CRON_SECRET>`, compared in **constant time** (`timingSafeEqual`); anything else gets 401.
+- **Validation everywhere**: shared zod schemas on the **client and server**, Gemini output re-validated with zod, DB `CHECK` constraints as the last line. TypeScript strict, **no `any`**.
+- **No secrets in the browser or repo**: only `NEXT_PUBLIC_SUPABASE_URL` / publishable key are public; Gemini, Google, Resend, Supabase secret and cron secret are server-only env vars. `.env*` is git-ignored except `.env.example`.
+- **Safe redirects** (`?next=` only accepts same-origin paths), **security headers** (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`), and **no account enumeration** on sign-in.
+
+**Rate limits** (per user, enforced in Postgres via `check_rate_limit`; exceeding one returns HTTP 429 / a friendly error with "try again in N s")
+
+| Bucket | Limit | Applies to |
+| --- | --- | --- |
+| `generate` | **10 / minute** | `POST /api/generate` (Gemini calls) |
+| `mutate` | **30 / minute** | create / update / delete post, Drive sync |
+| `email` | **5 / 5 minutes** | "Send test email" |
 
 ---
 
-## 3. Environment variables and API keys
+## 5. Environment variables and API keys
 
 Copy `.env.example` to `.env.local` and fill in:
 
 | Variable | Required | Where to get it | Purpose |
 | --- | --- | --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | yes | Your URL: `http://localhost:3000` locally, `https://your-app.vercel.app` in production | Builds the redirect link in sign-up confirmation emails |
+| `NEXT_PUBLIC_SITE_URL` | yes | `http://localhost:3000` locally, `https://your-app.vercel.app` in production | Auth email redirects and the Google OAuth redirect URI (`{SITE}/api/drive/callback`) |
 | `NEXT_PUBLIC_SUPABASE_URL` | yes | Supabase → Project Settings → API → Project URL | Supabase endpoint |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | yes | Supabase → Project Settings → API Keys → **Publishable key** (`sb_publishable_...`), or the legacy **anon** key | Public client key. Safe in the browser because Row Level Security protects all data |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | yes | Supabase → Project Settings → API Keys → **Publishable key** (`sb_publishable_...`) | Public client key; safe in the browser because RLS protects all data |
+| `SUPABASE_SECRET_KEY` | for Drive + email | Supabase → API Keys → **Secret key** (`sb_secret_...`) | **Server only.** Stores/reads Drive refresh tokens, runs the reminder cron, writes the email log |
+| `GEMINI_API_KEY` | for AI | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) | Caption generation |
+| `GEMINI_MODEL` | no | default `gemini-2.5-flash` | Override the model |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | for Drive | Google Cloud → OAuth client ID (Web), see [step 6](#6-setup-guide-step-by-step) | Google Drive OAuth |
+| `RESEND_API_KEY` | for email | [resend.com](https://resend.com) → API Keys | Confirmation, reminder and test emails. Test mode only delivers to your Resend account's own address |
+| `EMAIL_FROM` | no | default `Cadence <onboarding@resend.dev>` | Sender (use a verified domain in production) |
+| `CRON_SECRET` | for reminders | any long random string (`openssl rand -hex 32`) | Shared secret between pg_cron and `/api/cron/notify` |
 
-**API keys needed:** only the two Supabase values above.
+**API keys needed**
 
-| External service | Key needed? | Notes |
-| --- | --- | --- |
-| Supabase (Auth, Postgres, Storage) | Yes (URL + publishable key) | Free tier is enough |
-| Open-Meteo Geocoding API | **No** | Free production API, `geocoding-api.open-meteo.com` |
-| Open-Meteo Forecast API | **No** | Free production API, `api.open-meteo.com` |
-| OpenStreetMap embed | **No** | Map tiles + marker via iframe |
-
-The app needs **no server secret** (no service-role key): every query runs as the signed-in user. `.env.local` is git-ignored; only `.env.example` (no real values) is committed.
+| External service | Key needed? | Free tier | Without it |
+| --- | --- | --- | --- |
+| Supabase (Auth, Postgres, pg_cron) | URL + publishable key (+ secret key) | Yes | App can't run |
+| Google Gemini API | `GEMINI_API_KEY` | Yes (AI Studio) | Generator shows "AI isn't configured"; you can still write captions by hand |
+| Google Drive API | OAuth client ID + secret | Yes | Drive card shows "not configured"; posts still save |
+| Resend | `RESEND_API_KEY` | Yes (100 emails/day) | Emails are skipped and logged as not configured |
 
 ---
 
-## 4. Setup guide (step by step)
+## 6. Setup guide (step by step)
 
 ### Prerequisites
 - Node.js **20.9+** and npm
-- A free [Supabase](https://supabase.com) account (or Docker Desktop for the local option)
+- Free accounts: [Supabase](https://supabase.com), [Google AI Studio](https://aistudio.google.com), [Google Cloud](https://console.cloud.google.com), [Resend](https://resend.com)
 
-### Option A: hosted Supabase (recommended, same as production)
-
-1. **Install dependencies**
-   ```bash
-   npm install
-   cp .env.example .env.local        # Windows PowerShell: Copy-Item .env.example .env.local
-   ```
-2. **Create a Supabase project** at supabase.com → New project.
-3. **Create the database**: Supabase → **SQL Editor** → New query → paste the whole of
-   `supabase/migrations/20261118000001_init.sql` → **Run**. This creates both tables, Row Level Security policies, the trigger, and the private `event-files` storage bucket with its policies.
-4. **Configure auth**: Authentication → **Sign In / Providers** → Email → turn **Confirm email OFF** (users are signed in straight after sign-up; turn it on if you want email verification, the app handles both).
-   Authentication → **URL Configuration** → Site URL = your site URL; add `http://localhost:3000/**` and `https://your-app.vercel.app/**` to Redirect URLs.
-5. **Add keys** to `.env.local` (see [section 3](#3-environment-variables-and-api-keys)).
-6. **Run**
-   ```bash
-   npm run dev                       # http://localhost:3000
-   ```
-7. Open the app → **Get started** → create an account → **New event**.
-
-### Option B: fully local Supabase (Docker)
-
+### 1. Install
 ```bash
 npm install
-npx supabase start                 # starts Postgres/Auth/Storage in Docker and applies the migration
-npx supabase status -o env         # copy API_URL and PUBLISHABLE_KEY into .env.local
-npm run dev
+cp .env.example .env.local        # Windows PowerShell: Copy-Item .env.example .env.local
 ```
-Local ports are 553xx (API `http://127.0.0.1:55321`, Studio `http://127.0.0.1:55323`) so they don't clash with other Supabase projects. Stop with `npx supabase stop`.
+
+### 2. Supabase
+1. Create a project at supabase.com → New project. Copy the URL, publishable key and secret key into `.env.local`.
+2. **SQL Editor** → New query → run the migrations **in order**:
+   1. `supabase/migrations/20261118000001_init.sql`
+   2. `supabase/migrations/20261118000002_cadence.sql` (posts, notification settings/log, Drive connections, rate limiter, RLS + grants)
+3. **Reminders**: open `supabase/cron.sql`, replace `REPLACE_WITH_CRON_SECRET` (and the URL, if your deployment differs) with your values, and run it in the SQL Editor. It enables **pg_cron** + **pg_net** and schedules the `cadence-reminders` job that calls `GET {SITE}/api/cron/notify` every minute. Re-running it is safe; the file also lists queries to inspect runs and to unschedule.
+4. **Auth**: Authentication → Sign In / Providers → Email → turn **Confirm email OFF** (users go straight to the studio; the app also handles confirmation if you turn it on). Authentication → URL Configuration → Site URL = your site URL; add `http://localhost:3000/**` and `https://your-app.vercel.app/**` to Redirect URLs.
+
+### 3. Google Gemini
+[aistudio.google.com/apikey](https://aistudio.google.com/apikey) → **Create API key** → `GEMINI_API_KEY`.
+
+### 4. Google Drive (OAuth)
+1. [console.cloud.google.com](https://console.cloud.google.com) → **Create project** (e.g. "Cadence").
+2. APIs & Services → **Library** → search **Google Drive API** → **Enable**.
+3. APIs & Services → **OAuth consent screen** → User type **External** → app name, support email → scopes can stay default (the app requests `drive.file`, `openid`, `email`) → **Test users: add your own Google account** (and the judges' if needed) → Save.
+4. APIs & Services → **Credentials** → **Create credentials → OAuth client ID** → Application type **Web application** → **Authorised redirect URIs**:
+   - `http://localhost:3000/api/drive/callback`
+   - `https://your-app.vercel.app/api/drive/callback`
+5. Copy the **Client ID** and **Client secret** into `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+
+> While the consent screen is in *Testing*, only listed test users can connect, and Google shows an "unverified app" notice: click **Continue**.
+
+### 5. Resend
+[resend.com](https://resend.com) → API Keys → **Create** → `RESEND_API_KEY`. Without a verified domain, Resend only delivers to the email you signed up with, so set your notification email to that address while testing.
+
+### 6. Cron secret and run
+```bash
+# put any long random string in CRON_SECRET (same value as in supabase/cron.sql)
+npm run dev                       # http://localhost:3000
+```
+Open the app → **Get started** → create an account → describe a post → **Generate captions** → pick one → **Schedule post**. Connect Drive from the Drive card.
+
+> pg_cron runs in Supabase's cloud, so it can only reach a **public** URL. Locally you can trigger reminders by hand:
+> `curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/notify`
 
 ### Useful scripts
 
@@ -172,33 +253,34 @@ Local ports are 553xx (API `http://127.0.0.1:55321`, Studio `http://127.0.0.1:55
 | `npm run dev` | Development server |
 | `npm run build` / `npm start` | Production build / serve |
 | `npm run typecheck` · `npm run lint` · `npm run check` | TypeScript, ESLint, both |
-| `npm run test:security` | Proves RLS isolation between two users (13 checks) |
+| `npm run test:security` | Proves RLS, column grants and the rate limiter at the database level (24 checks) |
 | `npm run test:e2e` | Drives the real app in Chrome through every pipeline and saves screenshots |
 
 ---
 
-## 5. Deployment (Vercel)
+## 7. Deployment (Vercel)
 
 1. Push the repository to GitHub (public).
-2. [vercel.com/new](https://vercel.com/new) → **Import** the repo. Framework preset: **Next.js** (auto-detected). No build settings to change.
-3. **Environment Variables** → add `NEXT_PUBLIC_SITE_URL` (your Vercel URL), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` → **Deploy**.
-4. In Supabase → Authentication → URL Configuration, set **Site URL** to the Vercel URL and add `https://your-app.vercel.app/**` to Redirect URLs.
-5. Verify: open `https://your-app.vercel.app/api/health`. It should return `{"status":"ok","supabaseConfigured":true,...}`.
-6. Run the end-to-end check against production:
+2. [vercel.com/new](https://vercel.com/new) → **Import** the repo. Framework preset: **Next.js** (auto-detected).
+3. **Environment Variables** → add every variable from [section 5](#5-environment-variables-and-api-keys) (`NEXT_PUBLIC_SITE_URL` = your Vercel URL) → **Deploy**.
+4. Supabase → Authentication → URL Configuration: Site URL = the Vercel URL; add `https://your-app.vercel.app/**` to Redirect URLs.
+5. Google Cloud → Credentials → your OAuth client: make sure `https://your-app.vercel.app/api/drive/callback` is listed.
+6. Run `supabase/cron.sql` with the **production** URL and the same `CRON_SECRET` as in Vercel.
+7. Verify: `https://your-app.vercel.app/api/health` returns `{"status":"ok","supabaseConfigured":true,...}`, then:
    ```bash
    BASE_URL=https://your-app.vercel.app npm run test:e2e
    # PowerShell: $env:BASE_URL="https://your-app.vercel.app"; npm run test:e2e
    ```
 
-> `NEXT_PUBLIC_*` variables are baked in at build time. If you change one in Vercel, **redeploy** (or push a commit).
+> `NEXT_PUBLIC_*` variables are baked in at build time. If you change one in Vercel, **redeploy**.
 
-**Region:** `vercel.json` pins serverless functions to `bom1` (Mumbai), close to users in Pakistan, instead of Vercel's default US East region. Ideally the Supabase project sits in the matching region (`ap-south-1`, Mumbai) so each database query is a short hop. (We tried `hnd1` Tokyo first: Open-Meteo's forecast host timed out from there, and the app's error state with a retry button handled it.)
+**Region:** `vercel.json` pins serverless functions to `bom1` (Mumbai), close to users in Pakistan; ideally the Supabase project sits in `ap-south-1` too.
 
-**Deployment protection:** the production domain must be public for judges. Vercel → Settings → Deployment Protection → *Vercel Authentication* must not require login on production.
+**Deployment protection:** the production domain must be public for judges (Vercel → Settings → Deployment Protection → *Vercel Authentication* off for production).
 
 ---
 
-## 6. Screenshots: each pipeline, in order
+## 8. Screenshots: each pipeline, in order
 
 Generated by `npm run test:e2e`, which also asserts that each step works.
 
@@ -206,98 +288,85 @@ Generated by `npm run test:e2e`, which also asserts that each step works.
 ![Landing page](docs/screenshots/01-landing.png)
 
 ### Auth pipeline
-| Route protection: `/dashboard/events` while signed out → `/login?next=...` | Sign-up validation (client + server) |
+| Route protection: `/dashboard` while signed out → `/login?next=...` | Sign-up validation (client + server) |
 | --- | --- |
 | ![Route protection](docs/screenshots/02-route-protection-redirect.png) | ![Sign-up validation](docs/screenshots/03-signup-validation.png) |
 
-| Sign-up form | First sign-in: empty dashboard |
+| Sign-up form | First sign-in: empty studio |
 | --- | --- |
-| ![Sign-up](docs/screenshots/04-signup-form.png) | ![Empty dashboard](docs/screenshots/05-dashboard-empty.png) |
+| ![Sign-up](docs/screenshots/04-signup-form.png) | ![Empty studio](docs/screenshots/05-studio-empty.png) |
 
-### Create (database + storage + external API)
-Venue picked with the live Open-Meteo geocoding search; cover image uploaded to the private bucket.
-![Create event](docs/screenshots/06-create-event-form.png)
-
-### Read: event detail with live weather and map
-![Event detail](docs/screenshots/07-event-detail-weather-map.png)
-
-### Cloud storage: attachments uploaded and rendered via signed URLs
-![File uploads](docs/screenshots/08-file-uploads.png)
-
-### Validation errors
-![Form validation](docs/screenshots/09-form-validation.png)
-
-### List, search and filter
-| Events list | Search ("workshop") |
+### Generate (Gemini)
+| Prompt + platform | Caption options with hashtags |
 | --- | --- |
-| ![Events list](docs/screenshots/10-events-list.png) | ![Search](docs/screenshots/11-events-search.png) |
+| ![Prompt](docs/screenshots/06-generate-prompt.png) | ![Caption options](docs/screenshots/07-caption-options.png) |
 
-### Update and delete
-| Edit | Delete confirmation |
+### Schedule (database + Google Drive + email)
+| Pick a time and task notes | Feed of saved and scheduled posts |
 | --- | --- |
-| ![Edit](docs/screenshots/12-edit-event.png) | ![Delete](docs/screenshots/13-delete-confirm.png) |
+| ![Schedule composer](docs/screenshots/08-schedule-composer.png) | ![Post feed](docs/screenshots/09-post-feed.png) |
 
-### Dashboard
-![Dashboard](docs/screenshots/14-dashboard.png)
+### Update, notifications, delete
+| Edit caption | Notification settings | Delete confirmation |
+| --- | --- | --- |
+| ![Edit](docs/screenshots/10-edit-post.png) | ![Notification settings](docs/screenshots/11-notification-settings.png) | ![Delete](docs/screenshots/12-delete-confirm.png) |
 
 ### Responsive (mobile)
-| Events on mobile | Mobile navigation |
+| Studio on mobile | Feed on mobile |
 | --- | --- |
-| <img src="docs/screenshots/15-mobile-events.png" width="300" alt="Mobile events"> | <img src="docs/screenshots/16-mobile-nav.png" width="300" alt="Mobile navigation"> |
+| <img src="docs/screenshots/13-mobile-studio.png" width="300" alt="Mobile studio"> | <img src="docs/screenshots/14-mobile-feed.png" width="300" alt="Mobile feed"> |
 
 ### Sign out
-![Signed out](docs/screenshots/17-signed-out.png)
+![Signed out](docs/screenshots/15-signed-out.png)
 
 ---
 
-## 7. Testing
+## 9. Testing
 
-- **End-to-end** (`npm run test:e2e`): health check → landing → protected route redirect → protected API returns 401 → sign-up validation → sign-up → create event with geocoding + cover upload → weather renders for event day → upload PDF + image → signed URL returns the PDF → create more events → validation errors → list → search → update → delete → dashboard → mobile layouts → sign out → route protected again. Fails loudly on the first broken step.
-- **Security** (`npm run test:security`): two throwaway users; verifies the second user cannot read, update, delete, spoof ownership, attach to, download, sign, or upload into the first user's data, that anonymous access is denied, and that the bucket rejects disallowed file types.
+- **End-to-end** (`npm run test:e2e`): health check → landing → `/dashboard` redirect when signed out → `/api/generate` returns 401 and `/api/cron/notify` rejects requests without the secret → sign-up validation → sign-up → empty studio → prompt + platform → **Generate captions** → pick an option → time + notes → **Schedule post** → save a second option as a draft → feed → edit caption → notification settings → delete via confirm dialog → Drive connect redirects to Google → mobile → sign out → route protected again. AI steps are soft (a missing `GEMINI_API_KEY` is reported as a warning, not a failure); set `STRICT=1` to make them fatal. Options: `BASE_URL`, `EMAIL` + `PASSWORD` (existing account), `HEADED=1`.
+- **Security** (`npm run test:security`): two throwaway users via the public key. Verifies the owner can create/read/delete a post; anonymous visitors and the other user cannot read, update or delete it or insert one in the owner's name; settings and the email log are private and can't be forged; `refresh_token` can't be selected from `drive_connections`; `rate_limits` can't be read or written; `check_rate_limit` allows 2 of 2 then blocks the third, keeps quotas per user, and rejects anonymous callers.
 - **Static**: `npm run check` (TypeScript strict + ESLint), `npm run build`.
 
-## 8. Security
-
-- **Three layers of route protection**: `proxy.ts` redirects; every page / Server Action / API route calls `requireUser()` / `getCurrentUser()` (JWT verified with `getClaims()`); Postgres **Row Level Security** enforces ownership even if the app layer were bypassed.
-- **Validation everywhere**: shared Zod schemas on the client and server; DB `CHECK` constraints; storage bucket size + MIME limits; server checks that file paths sit inside the caller's folder.
-- **Private files**: the bucket is private; files are served only via signed URLs that expire after 1 hour.
-- **No secrets in the repo**: `.env*` is git-ignored except `.env.example`; the app uses no service-role key at all.
-- **Safe redirects**: `?next=` only accepts same-origin relative paths.
-- **Headers**: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`.
-- **No account enumeration**: sign-in returns the same message for unknown email and wrong password.
-
-## 9. Project structure
+## 10. Project structure
 
 ```
 src/
   app/
-    (marketing)/          landing page + public header/footer
-    (auth)/               /login, /signup
-    auth/                 /auth/callback, /auth/confirm (email link handlers)
-    dashboard/            protected area: overview, events list, new, [id], [id]/edit
-    api/                  /api/weather, /api/geocode (protected), /api/health
+    (marketing)/            landing page + public header/footer
+    (auth)/                 /login, /signup
+    auth/                   /auth/callback, /auth/confirm (email link handlers)
+    dashboard/              the protected single-page studio
+    api/
+      generate/             POST: Gemini captions (auth, zod, rate limit)
+      drive/connect/        GET: start Google OAuth (CSRF state cookie)
+      drive/callback/       GET: exchange code, store refresh token, create folder
+      cron/notify/          GET: pg_cron → due reminders (Bearer CRON_SECRET)
+      health/               GET: deployment check
     error.tsx, not-found.tsx, layout.tsx, globals.css
   components/
-    ui/                   design-system primitives (button, inputs, dialogs, badges...)
-    app/                  signed-in shell (sidebar, mobile drawer, user menu)
-    auth/                 sign-in / sign-up forms
-    events/               event card, form, filters, location search, weather, map, attachments
-  config/                 site branding + event vocabulary (categories, statuses, sort options)
+    ui/                     design-system primitives (button, inputs, dialogs, sheet, badges...)
+    studio/                 studio, generator, caption options, schedule composer,
+                            post feed, drive status, notification settings, email activity
+    auth/                   sign-in / sign-up forms
   lib/
-    actions/              Server Actions: auth, events (C/U/D), attachments
-    auth/dal.ts           the only place that reads the session
-    data/events.ts        read queries (R) + signed URLs
-    services/open-meteo.ts external API client (timeout, retry, typed errors)
-    supabase/             browser / server / proxy clients
-    validation/           Zod schemas shared by client + server
-    storage.ts            bucket name, limits, allowed types, path builders
-  proxy.ts                Next.js 16 proxy (session refresh + redirects)
-  types/db.ts             row types
-supabase/migrations/      the complete database + storage setup (one SQL file)
-scripts/                  e2e + screenshots, security check
-docs/screenshots/         README images
+    actions/                Server Actions: auth, posts (C/U/D), notifications, drive
+    data/                   read queries (posts, studio data)
+    services/               gemini.ts, google-drive.ts, email.ts (external APIs, server-only)
+    validation/             zod schemas shared by client + server (auth, post, notifications)
+    email/                  email templates (HTML + text)
+    supabase/               browser / server / proxy clients + admin (secret key, server-only)
+    auth/dal.ts             the only place that reads the session
+    rate-limit.ts           check_rate_limit RPC wrapper + LIMITS
+    env.ts                  typed env access + is*Configured() helpers
+  proxy.ts                  Next.js 16 proxy (session refresh + redirects)
+  types/db.ts               row + domain types (PostRow, CaptionOption, Platform...)
+supabase/
+  migrations/               database setup, applied in order
+  cron.sql                  pg_cron job for reminder emails
+scripts/                    e2e + screenshots, security check
+docs/                       DEFENSE.md (demo script + Q&A), screenshots/
 ```
 
 ---
 
-Weather data by [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0). Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
+Captions by [Google Gemini](https://ai.google.dev). Email by [Resend](https://resend.com). Drafts stored in the user's own Google Drive.
