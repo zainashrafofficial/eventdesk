@@ -212,7 +212,7 @@ export function ScheduleComposer({
           e.preventDefault();
           submit("scheduled");
         }}
-        className="grid min-w-0 gap-8 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]"
+        className="grid min-w-0 gap-8 p-5 sm:p-7 xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] 2xl:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]"
         noValidate
       >
         <div className="flex min-w-0 flex-col gap-6">
@@ -374,11 +374,13 @@ export function ScheduleComposer({
             </button>
           </label>
 
-          <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
+          {/* Two equal buttons that always fit the column (stack on very narrow screens). */}
+          <div className="grid min-w-0 grid-cols-1 gap-3 pt-1 min-[420px]:grid-cols-2">
             <Button
               type="button"
               variant="secondary"
               size="lg"
+              className="w-full min-w-0 px-4"
               onClick={() => submit("draft")}
               loading={pending && pendingAction === "draft"}
               disabled={pending}
@@ -390,7 +392,7 @@ export function ScheduleComposer({
               size="lg"
               loading={pending && pendingAction === "scheduled"}
               disabled={pending}
-              className="shadow-lift"
+              className="w-full min-w-0 px-4 shadow-lift"
             >
               <Send /> Schedule post
             </Button>
@@ -398,7 +400,7 @@ export function ScheduleComposer({
         </div>
 
         {/* Live preview */}
-        <aside aria-label="Post preview" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+        <aside aria-label="Post preview" className="min-w-0 xl:sticky xl:top-24 xl:self-start">
           <p className="eyebrow mb-3">Preview</p>
           <div className="overflow-hidden rounded-3xl border border-line bg-surface shadow-soft">
             <div className="flex items-center gap-3 px-4 pt-4">
