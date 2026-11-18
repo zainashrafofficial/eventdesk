@@ -246,7 +246,7 @@ async function main() {
 
   // 4. Generate captions with Gemini (soft: needs GEMINI_API_KEY)
   const prompt = await firstVisible(
-    [page.getByLabel(/prompt|what are you posting|describe|idea|topic/i), page.locator("textarea")],
+    [page.locator("section[aria-labelledby=generator-title] textarea"), page.locator("textarea")],
     "the prompt field",
   );
   await prompt.fill(PROMPT);
@@ -274,7 +274,8 @@ async function main() {
   let hasPosts = false;
   if (generated) {
     await soft("selecting a caption option", async () => {
-      await optionCards(page).first().click();
+      await page.getByRole("radio", { name: /use this|selected/i }).first().click();
+      await page.locator('input[type="datetime-local"]').first().waitFor({ timeout: 10000 });
     });
     const when = await firstVisible([page.locator('input[type="datetime-local"]')], "the schedule time input");
     await when.fill(localDateTime(2, 10));
