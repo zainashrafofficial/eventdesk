@@ -62,6 +62,14 @@ export default async function MarketingLayout({ children }: { children: React.Re
                 <span className="text-faint">© {new Date().getFullYear()}</span>
               </div>
               <p className="text-faint">Built with Next.js, Supabase, Google Gemini, Google Drive &amp; Resend.</p>
+              <nav aria-label="Legal" className="flex gap-4">
+                <Link href="/privacy" className="font-medium text-ink-2 transition-colors hover:text-ink">
+                  Privacy Policy
+                </Link>
+                <Link href="/terms" className="font-medium text-ink-2 transition-colors hover:text-ink">
+                  Terms of Service
+                </Link>
+              </nav>
             </div>
             <div className="flex flex-col gap-1 md:text-right">
               <p className="font-medium text-ink-2">
