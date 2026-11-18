@@ -130,14 +130,14 @@ export function CaptionOptions({
                   </ul>
                 )}
 
-                <div className="mt-auto flex items-center justify-between gap-3 pt-5">
+                <div className="mt-auto flex items-center justify-between gap-2 pt-5">
                   <span
-                    className={cn("text-xs tabular", over ? "font-medium text-warning" : "text-faint")}
+                    className={cn("min-w-0 whitespace-nowrap text-xs tabular", over ? "font-medium text-warning" : "text-faint")}
                     title={over ? `Over the ${PLATFORM_LABELS[platform]} limit` : undefined}
                   >
-                    {length.toLocaleString("en-US")} / {limit.toLocaleString("en-US")}
+                    {length.toLocaleString("en-US")}/{limit.toLocaleString("en-US")}
                   </span>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex shrink-0 items-center gap-1">
                     <button
                       type="button"
                       onClick={() => void copy(i, option)}
@@ -152,7 +152,7 @@ export function CaptionOptions({
                       aria-checked={selected}
                       onClick={() => onSelect(i)}
                       className={cn(
-                        "inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-[13px] font-medium transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]",
+                        "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[13px] font-medium transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]",
                         selected
                           ? "bg-accent text-accent-ink"
                           : "border border-line bg-surface text-ink hover:border-line-strong hover:bg-surface-2",
